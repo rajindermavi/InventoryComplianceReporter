@@ -61,27 +61,26 @@ inventory-compliance-reporter/
 ├── pyproject.toml         
 ├── docs/                 
 ├── src/
-│   └── icr/
+│   ├── __init__.py
+│   ├── cli.py
+│   ├── config.py
+│   ├── ingest/
+│   │   ├── __init__.py
+│   │   └── excel_reader.py
+│   ├── domain/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   └── compare.py
+│   ├── reporting/
+│   │   ├── __init__.py
+│   │   └── html.py
+│   ├── emailer/
+│   │   ├── __init__.py
+│   │   └── draft.py
+│   └── utils/
 │       ├── __init__.py
-│       ├── cli.py
-│       ├── config.py
-│       ├── ingest/
-│       │   ├── __init__.py
-│       │   └── excel_reader.py
-│       ├── domain/
-│       │   ├── __init__.py
-│       │   ├── models.py
-│       │   └── compare.py
-│       ├── reporting/
-│       │   ├── __init__.py
-│       │   └── html.py
-│       ├── emailer/
-│       │   ├── __init__.py
-│       │   └── draft.py
-│       └── utils/
-│           ├── __init__.py
-│           ├── db.py
-│           └── logging.py
+│       ├── db.py
+│       └── logging.py
 ├── tests/
 │   ├── __init__.py
 │   ├── test_ingest.py
