@@ -1,13 +1,24 @@
-"""Entry point
+"""Application entry point for Inventory Compliance Reporter.
 
 Responsibilities:
-- Call GUI objects
-- Coordinate run selection workflow
-- Invoke ingestion, comparison, reporting, and email steps
+- Invoke the frontend flow
+- Handle top-level exceptions
 
-Implementation deferred to Phase 2.
+Implementation deferred to Phase 6.
 """
 
+from icr.frontend import flow
+
+
 def main() -> None:
-    """Entry point stub for the CLI."""
-    raise NotImplementedError("Implemented in Phase 2")
+    """Run the application frontend flow."""
+    try:
+        flow.run_flow()
+    except NotImplementedError:
+        raise
+    except Exception as exc:
+        raise RuntimeError("Frontend execution failed.") from exc
+
+
+if __name__ == "__main__":
+    main()
