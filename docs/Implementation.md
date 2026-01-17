@@ -1,7 +1,7 @@
 # Implementation Task List
 
 This document defines the **ordered implementation phases** for the Inventory Compliance Reporter.
-Phases are intentionally narrow to support incremental development, Codex-driven execution, and
+Phases are intentionally narrow to support incremental development, agent execution, and
 a PyInstaller-based Windows application.
 
 ---
@@ -130,16 +130,19 @@ Modules:
 
 ---
 
-## Phase 7 – Optional Enhancements
+## Phase 7 – Output Delivery & User-Directed Actions
 
-### Phase 7A – PDF Generation
-- PDF rendering from HTML reports
-- Optional attachment support
+- Phase 7 is mandatory; delivery behaviors are user-selected per run.
+- Reports are always generated in HTML.
+- PDF generation is optional and user-controlled.
+- Email drafts (`.eml`) can always be exported.
+- Sending emails is never implicit and requires user confirmation.
+- Users choose delivery mode: export only, send now, or both.
+- Multiple email transports are supported (Nicemail preferred, SMTP optional).
+- Transport selection occurs at runtime.
+- Delivery failures must not block other outputs.
+- All delivery actions are logged for auditability.
 
-### Phase 7B – Email Sending
-- SMTP integration
-- Credential handling
-- Feature-flagged sending
 
 ---
 
@@ -151,7 +154,7 @@ Modules:
 - Phase 2C → Phase 3
 - Phase 3 → Phase 4 → Phase 5
 - Phase 4 & 5 → Phase 6
-- Phase 6 → Phase 7 (optional)
+- Phase 6 → Phase 7
 
 ---
 
