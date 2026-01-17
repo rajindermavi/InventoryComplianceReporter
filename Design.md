@@ -106,6 +106,11 @@ Implementation must preserve these boundaries:
 
 ### 6. Intermediate state may be persisted in a per-run SQLite database
 
+### 7. Windows & PyInstaller Compatibility
+- The application is distributed as a PyInstaller-built Windows executable.
+- All runtime data (SQLite DBs, reports, logs) must be written to a user-writable directory resolved at runtime (e.g., %LOCALAPPDATA%).
+- No runtime artifacts may be written relative to the executable path.
+
 ---
 
 ## File Ownership Map (Code ↔ Docs)

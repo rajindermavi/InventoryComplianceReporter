@@ -54,34 +54,38 @@ SQLite is used as a transient runtime datastore to normalize inputs, manage sele
 
 ## Directory Structure
 
-inventory_compliance_reporter/
-  src/icr/
-    __init__.py
-    cli.py
-    config.py
-    ingest/
-      __init__.py
-      excel_reader.py
-      schemas.py
-    domain/
-      __init__.py
-      models.py
-      matcher.py
-      compare.py
-    reporting/
-      __init__.py
-      html.py
-      pdf.py
-      templates/
-        report.html.j2
-        email.html.j2
-    emailer/
-      __init__.py
-      draft.py
-      smtp_sender.py   # optional
-    utils/
-      logging.py
-      paths.py
-  tests/
-  docs/
-  pyproject.toml
+
+inventory-compliance-reporter/
+├── DESIGN.md               
+├── README.md               
+├── pyproject.toml         
+├── docs/                 
+├── src/
+│   └── icr/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── config.py
+│       ├── ingest/
+│       │   ├── __init__.py
+│       │   └── excel_reader.py
+│       ├── domain/
+│       │   ├── __init__.py
+│       │   ├── models.py
+│       │   └── compare.py
+│       ├── reporting/
+│       │   ├── __init__.py
+│       │   └── html.py
+│       ├── emailer/
+│       │   ├── __init__.py
+│       │   └── draft.py
+│       └── utils/
+│           ├── __init__.py
+│           ├── db.py
+│           └── logging.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_ingest.py
+│   ├── test_compare.py
+│   └── test_reporting.py
+└── runs/
+    └── .gitkeep
