@@ -1,7 +1,7 @@
-"""Command-line interface stubs.
+"""Entry point
 
 Responsibilities:
-- Parse CLI arguments
+- Call GUI objects
 - Coordinate run selection workflow
 - Invoke ingestion, comparison, reporting, and email steps
 

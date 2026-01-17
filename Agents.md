@@ -12,6 +12,7 @@ Before making any changes:
 - Keep changes scoped to the requested area
 - Do not introduce insecure storage or auth behavior
 - Do not silently downgrade security or provider guarantees
+- Keep a changelog.md. For each update action, add a corresponding line to the changelog.
 
 ## Documentation
 - Update docs/ when behavior changes

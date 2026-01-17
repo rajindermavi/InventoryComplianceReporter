@@ -54,33 +54,52 @@ SQLite is used as a transient runtime datastore to normalize inputs, manage sele
 
 ## Directory Structure
 
-
 inventory-compliance-reporter/
-├── DESIGN.md               
-├── README.md               
-├── pyproject.toml         
-├── docs/                 
+├── DESIGN.md
+├── README.md
+├── pyproject.toml
+├── docs/
+│   ├── ProductRequirements.md
+│   ├── RequirementsSpec.md
+│   ├── Architecture.md
+│   ├── DataModel.md
+│   ├── ComparisonLogic.md
+│   ├── Config.md
+│   ├── CLIUX.md
+│   ├── RunSummarySpec.md
+│   └── Testing.md
 ├── src/
-│   ├── __init__.py
-│   ├── cli.py
-│   ├── config.py
-│   ├── ingest/
-│   │   ├── __init__.py
-│   │   └── excel_reader.py
-│   ├── domain/
-│   │   ├── __init__.py
-│   │   ├── models.py
-│   │   └── compare.py
-│   ├── reporting/
-│   │   ├── __init__.py
-│   │   └── html.py
-│   ├── emailer/
-│   │   ├── __init__.py
-│   │   └── draft.py
-│   └── utils/
+│   └── icr/
 │       ├── __init__.py
-│       ├── db.py
-│       └── logging.py
+│       ├── app.py
+│       ├── config.py
+│       ├── frontend/
+│       │   ├── __init__.py
+│       │   ├── flow.py
+│       │   ├── selection.py
+│       │   └── messages.py
+│       ├── backend/
+│       │   ├── __init__.py
+│       │   ├── ingest/
+│       │   │   ├── __init__.py
+│       │   │   └── excel_reader.py
+│       │   ├── domain/
+│       │   │   ├── __init__.py
+│       │   │   ├── models.py
+│       │   │   └── compare.py
+│       │   ├── reporting/
+│       │   │   ├── __init__.py
+│       │   │   └── html.py
+│       │   ├── emailer/
+│       │   │   ├── __init__.py
+│       │   │   └── draft.py
+│       │   └── persistence/
+│       │       ├── __init__.py
+│       │       ├── paths.py
+│       │       └── db.py
+│       └── utils/
+│           ├── __init__.py
+│           └── logging.py
 ├── tests/
 │   ├── __init__.py
 │   ├── test_ingest.py
