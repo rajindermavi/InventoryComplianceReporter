@@ -5,3 +5,4 @@
 - Implement Phase 2A runtime paths with per-run directories and logging destination.
 - Implement Phase 2B database lifecycle with schema initialization and run metadata.
 - Implement Phase 2C Excel ingestion with schema validation and SQLite persistence.
+- Add Phase 2 happy-path integration test covering paths, database, and ingestion.

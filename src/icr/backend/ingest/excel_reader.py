@@ -453,6 +453,12 @@ def _json_safe(value: object) -> object:
     return value
 
 
+def _adapt_sql_value(value: object) -> object:
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return value
+
+
 def _insert_table_rows(
     conn: sqlite3.Connection,
     table_name: str,
@@ -467,7 +473,10 @@ def _insert_table_rows(
     placeholders = ", ".join("?" for _ in columns)
     column_list = ", ".join(columns)
     sql = f"INSERT INTO {table_name} ({column_list}) VALUES ({placeholders});"
-    conn.executemany(sql, ([row.get(col) for col in columns] for row in rows_list))
+    conn.executemany(
+        sql,
+        ([_adapt_sql_value(row.get(col)) for col in columns] for row in rows_list),
+    )
 
 
 def _persist_validation_issues(db: DatabaseLike, issues: Sequence[ValidationIssue]) -> None:
