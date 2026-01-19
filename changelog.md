@@ -7,4 +7,5 @@
 - Implement Phase 2C Excel ingestion with schema validation and SQLite persistence.
 - Add Phase 2 happy-path integration test covering paths, database, and ingestion.
 - Implement Phase 4 HTML report rendering for per-vessel and run summary outputs.
+- Add Phase 4 unit tests for HTML vessel and run summary rendering.
 - Export public APIs in backend domain, ingest, reporting, and persistence packages.
