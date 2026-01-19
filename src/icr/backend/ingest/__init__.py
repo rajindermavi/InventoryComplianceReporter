@@ -1,8 +1,23 @@
-"""Ingestion package.
+"""Ingestion package."""
 
-Responsibilities:
-- Define ingestion interfaces
-- Coordinate input parsing and validation
+from .excel_reader import (
+    DatabaseLike,
+    IngestionFatalError,
+    IngestionStats,
+    IngestionSummary,
+    RuntimePathsLike,
+    SheetSpec,
+    ValidationIssue,
+    ingest_excel_files,
+)
 
-Implementation deferred to Phase 2.
-"""
+__all__ = [
+    "DatabaseLike",
+    "RuntimePathsLike",
+    "ValidationIssue",
+    "IngestionFatalError",
+    "IngestionStats",
+    "IngestionSummary",
+    "SheetSpec",
+    "ingest_excel_files",
+]

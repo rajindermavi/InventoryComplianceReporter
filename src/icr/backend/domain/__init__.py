@@ -1,8 +1,15 @@
-"""Domain package.
+"""Domain package."""
 
-Responsibilities:
-- Define core domain models
-- Provide comparison and classification boundaries
+from .compare import compare_inventory, normalize_edition
+from .models import IssueRow, IssueType
+from .queries import get_ams_vessels, get_onboard_inventory, get_reference_inventory
 
-Implementation deferred to Phase 2.
-"""
+__all__ = [
+    "IssueRow",
+    "IssueType",
+    "compare_inventory",
+    "normalize_edition",
+    "get_ams_vessels",
+    "get_onboard_inventory",
+    "get_reference_inventory",
+]

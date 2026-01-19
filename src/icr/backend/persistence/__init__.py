@@ -1,8 +1,13 @@
-"""Persistence subsystem.
+"""Persistence subsystem."""
 
-Responsibilities:
-- Runtime path resolution
-- Database lifecycle management
+from .db import Database, RunMetadata
+from .paths import RuntimePaths, get_app_data_dir, get_run_dir, get_runs_base_dir
 
-Implementation deferred to Phase 2.
-"""
+__all__ = [
+    "Database",
+    "RunMetadata",
+    "RuntimePaths",
+    "get_app_data_dir",
+    "get_runs_base_dir",
+    "get_run_dir",
+]

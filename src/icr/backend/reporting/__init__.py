@@ -1,8 +1,5 @@
-"""Reporting package.
+"""Reporting package."""
 
-Responsibilities:
-- Define reporting interfaces
-- Coordinate HTML/PDF output generation
+from .html import render_run_summary, render_vessel_report
 
-Implementation deferred to Phase 2.
-"""
+__all__ = ["render_run_summary", "render_vessel_report"]
