@@ -14,3 +14,5 @@
 - Add Phase 5 content rendering tests for email drafts.
 - Add Phase 5 .eml generation tests for email drafts.
 - Add Phase 5 summary mutation tests for email drafting.
+- Implement Phase 6 frontend workflow orchestration, selection interaction, and message catalog with tests.
+- Refine Phase 6 frontend flow and expand frontend message/selection/flow tests.

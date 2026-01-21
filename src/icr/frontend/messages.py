@@ -1,63 +1,77 @@
-"""User-facing message placeholders."""
+"""User-facing message catalog for the frontend."""
 
-WELCOME_TITLE = "Inventory Compliance Reporter"
-WELCOME_BODY = "Welcome to the Inventory Compliance Reporter."
-INPUT_PROMPT = "Provide required input locations."
-SELECTION_PROMPT = "Select vessels to include in this run."
-CONFIRMATION_PROMPT = "Confirm the selection and continue."
-COMPLETION_MESSAGE = "Processing complete."
-FATAL_ERROR_MESSAGE = "An unexpected error occurred."
+WELCOME = {
+    "title": "Inventory Compliance Reporter",
+    "body": "Welcome to the Inventory Compliance Reporter.",
+}
 
+PROMPTS = {
+    "input_ready": "Confirm that the required input files are ready.",
+    "confirm_selection": "Proceed with {count} selected vessels? (y/n)",
+    "confirm_retry": "Please enter y or n.",
+}
 
-def get_welcome_message() -> str:
-    """
-    Retrieve the welcome message shown at startup.
+SELECTION = {
+    "title": "Vessel Selection",
+    "instructions": "Select vessels to include in this run.",
+    "list_header": "Available vessels:",
+    "list_item": "{identifier}: {label}",
+    "selected_count": "Selected {selected_count} of {total_count} vessels.",
+    "options_header": "Options:",
+    "option_all": "A - Select all vessels",
+    "option_none": "N - Select no vessels",
+    "option_toggle": "T - Toggle a vessel by identifier",
+    "option_done": "D - Finish selection",
+    "prompt_action": "Choose an option (A/N/T/D): ",
+    "prompt_toggle": "Enter a vessel identifier to toggle: ",
+    "invalid_action": "Please choose A, N, T, or D.",
+    "invalid_toggle": "No vessel matches identifier: {vessel_id}",
+    "no_vessels": "No AMS vessels were found.",
+}
 
-    Implementation deferred to Phase 6.
-    """
-    raise NotImplementedError("Implemented in Phase 6")
+PROGRESS = {
+    "validating_inputs": "Checking input files...",
+    "discovering_vessels": "Discovering AMS vessels...",
+    "processing": "Processing selected vessels...",
+}
 
+STATUS = {
+    "selection_cancelled": "Selection cancelled. No processing was started.",
+    "selection_empty": "No vessels selected. Run cancelled.",
+}
 
-def get_input_prompt() -> str:
-    """
-    Retrieve the input discovery prompt.
+COMPLETION = {
+    "success": "Processing complete.",
+    "run_id": "Run ID: {run_id}",
+    "vessels_processed": "Vessels processed: {vessels_processed}",
+    "vessels_with_issues": "Vessels with issues: {vessels_with_issues}",
+    "total_issue_rows": "Total issue rows: {total_issue_rows}",
+}
 
-    Implementation deferred to Phase 6.
-    """
-    raise NotImplementedError("Implemented in Phase 6")
-
-
-def get_selection_prompt() -> str:
-    """
-    Retrieve the vessel selection prompt.
-
-    Implementation deferred to Phase 6.
-    """
-    raise NotImplementedError("Implemented in Phase 6")
-
-
-def get_confirmation_prompt() -> str:
-    """
-    Retrieve the user confirmation prompt.
-
-    Implementation deferred to Phase 6.
-    """
-    raise NotImplementedError("Implemented in Phase 6")
-
-
-def get_completion_message() -> str:
-    """
-    Retrieve the completion message shown after processing.
-
-    Implementation deferred to Phase 6.
-    """
-    raise NotImplementedError("Implemented in Phase 6")
-
-
-def get_fatal_error_message() -> str:
-    """
-    Retrieve the fatal error explanation for end users.
-
-    Implementation deferred to Phase 6.
-    """
-    raise NotImplementedError("Implemented in Phase 6")
+ERRORS = {
+    "backend_unavailable": {
+        "title": "Backend is unavailable.",
+        "body": "The application cannot start because backend services are not available.",
+        "next_step": "Please ensure the backend is installed and try again.",
+    },
+    "input_validation": {
+        "title": "Inputs are not ready.",
+        "body": "The application could not validate the input files.",
+        "next_step": "Please confirm the files are present and try again.",
+    },
+    "discover_vessels": {
+        "title": "Unable to discover vessels.",
+        "body": "The application could not identify AMS vessels for this run.",
+        "next_step": "Please check the input files and try again.",
+    },
+    "processing": {
+        "title": "Processing failed.",
+        "body": "The application could not complete processing for the selected vessels.",
+        "next_step": "Please review your inputs and try again.",
+    },
+    "unexpected": {
+        "title": "Unexpected error.",
+        "body": "Something went wrong while running the application.",
+        "next_step": "Please try again or contact support.",
+    },
+}
