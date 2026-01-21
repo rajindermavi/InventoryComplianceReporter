@@ -1,0 +1,22 @@
+{
+  "run_id": "20240101_1200",
+  "ams_vessels_found": 0,
+  "vessels_selected": 0,
+  "vessels_processed": 0,
+  "vessels_with_issues": 0,
+  "total_issue_rows": 0,
+  "errors": [
+    {
+      "phase": "email_drafting",
+      "message": "Missing required recipient: vessel email address.",
+      "severity": "error",
+      "vessel_id": "VESSEL_002"
+    },
+    {
+      "phase": "email_drafting",
+      "message": "Missing required recipient: office email address.",
+      "severity": "error",
+      "vessel_id": "VESSEL_002"
+    }
+  ]
+}
