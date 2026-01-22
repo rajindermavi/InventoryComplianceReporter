@@ -1,8 +1,21 @@
-"""Emailer package.
+"""Emailer package."""
 
-Responsibilities:
-- Define email drafting interfaces
-- Coordinate optional delivery actions
+from .draft import (
+    DEFAULT_SUBJECT_TEMPLATE,
+    EMAIL_PHASE,
+    DraftAttachment,
+    DraftEmail,
+    DraftIssue,
+    DraftingResult,
+    draft_emails,
+)
 
-Implementation deferred to Phase 2.
-"""
+__all__ = [
+    "DEFAULT_SUBJECT_TEMPLATE",
+    "EMAIL_PHASE",
+    "DraftAttachment",
+    "DraftEmail",
+    "DraftIssue",
+    "DraftingResult",
+    "draft_emails",
+]
