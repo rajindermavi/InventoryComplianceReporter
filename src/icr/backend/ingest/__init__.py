@@ -1,4 +1,10 @@
-"""Ingestion package."""
+"""Ingestion package.
+- Deterministic ingestion of Excel input
+- Early normalization and validation of data
+- Faithful preservation of raw input
+- Clear, actionable validation warnings and errors
+- User-controlled continuation when recoverable issues are present
+"""
 
 from .excel_reader import (
     DatabaseLike,
