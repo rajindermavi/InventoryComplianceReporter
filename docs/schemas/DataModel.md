@@ -105,9 +105,6 @@ description:        string
 current_date:       date
 
 
-
-
-
 ---
 
 ## Issue Row

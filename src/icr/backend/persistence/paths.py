@@ -8,6 +8,7 @@ forbidden to avoid writing beside the executable or to an unexpected CWD.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from pathlib import Path
 APP_DIR_NAME = "InventoryComplianceReporter"
 RUNS_DIR_NAME = "runs"
 RUN_SUBDIRS = ("data", "logs", "output", "tmp")
+MAX_RUN_VERSIONS = 2
 
 
 def _resolve_user_data_base() -> Path:
@@ -103,6 +105,34 @@ def _reserve_run_dir(runs_base_dir: Path, run_id: str) -> tuple[str, Path]:
         return candidate, run_dir
 
 
+def _prune_old_run_dirs(
+    runs_base_dir: Path,
+    *,
+    keep: int = MAX_RUN_VERSIONS,
+    preserve: Path | None = None,
+) -> None:
+    """Best-effort pruning of older run directories under the runs base dir."""
+
+    if keep < 1:
+        return
+
+    run_dirs = [entry for entry in runs_base_dir.iterdir() if entry.is_dir()]
+    if len(run_dirs) <= keep:
+        return
+
+    # Keep newest directories by modification time; remove older ones first.
+    sorted_dirs = sorted(run_dirs, key=lambda path: path.stat().st_mtime, reverse=True)
+    protected = {preserve.resolve()} if preserve else set()
+    for stale_dir in sorted_dirs[keep:]:
+        if stale_dir.resolve() in protected:
+            continue
+        try:
+            shutil.rmtree(stale_dir)
+        except OSError:
+            # Cleanup should not block creating a new run workspace.
+            continue
+
+
 @dataclass(frozen=True)
 class RuntimePaths:
     """Resolved, run-scoped filesystem layout for a single execution."""
@@ -135,6 +165,7 @@ class RuntimePaths:
         subdirs = {name: run_dir / name for name in RUN_SUBDIRS}
         for path in subdirs.values():
             path.mkdir(parents=True, exist_ok=True)
+        _prune_old_run_dirs(runs_base_dir, keep=MAX_RUN_VERSIONS, preserve=run_dir)
 
         logs_dir = subdirs["logs"]
         log_file = logs_dir / "run.log"

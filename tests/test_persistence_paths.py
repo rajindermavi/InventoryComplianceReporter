@@ -72,3 +72,15 @@ def test_stable_attribute_access(runtime_base: Path) -> None:
     assert runtime_paths.logs_dir == logs_dir
     assert runtime_paths.output_dir == output_dir
     assert runtime_paths.tmp_dir == tmp_dir
+
+
+def test_retention_prunes_old_run_directories(runtime_base: Path) -> None:
+    first = paths_mod.RuntimePaths.create(run_id="run-00")
+    for i in range(1, paths_mod.MAX_RUN_VERSIONS + 2):
+        paths_mod.RuntimePaths.create(run_id=f"run-{i:02d}")
+
+    runs_base = paths_mod.get_runs_base_dir()
+    run_dirs = [entry for entry in runs_base.iterdir() if entry.is_dir()]
+
+    assert len(run_dirs) == paths_mod.MAX_RUN_VERSIONS
+    assert not first.run_dir.exists()
