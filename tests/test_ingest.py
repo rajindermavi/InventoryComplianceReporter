@@ -311,3 +311,156 @@ def test_missing_key_fields_skip_rows_with_warning(
 
         assert issues
         assert _fetch_count(conn, "ic_inventory_row") == 0
+
+
+def test_invalid_email_format_emits_warning_and_ingests_row(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["vessels_index"],
+        [
+            "SHIPID",
+            "SHIPNAME",
+            "CUSTNO",
+            "IMONO",
+            "SHIPSTAT",
+            "EMAIL",
+            "NOTE1",
+            "NOTE2",
+            "NOTE3",
+        ],
+        [["S1", "Ship", "C1", "IMO", "Active", "not-an-email", "N1", "N2", "N3"]],
+    )
+
+    summary = ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    assert summary.has_warnings is True
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        issues = conn.execute(
+            """
+            SELECT * FROM validation_errors
+            WHERE error_type='invalid_email_format' AND column_name='email';
+            """
+        ).fetchall()
+        inserted_row = conn.execute("SELECT ship_email FROM vessel;").fetchone()
+
+    assert issues
+    assert inserted_row is not None
+    assert inserted_row["ship_email"] == "not-an-email"
+
+
+def test_invalid_date_format_warns_and_sets_null_current_date(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["ic"],
+        ["ITEM", "ITMDESC", "PLINID", "ITMCLSS", "UPCCODE", "EDITION", "CURRDATE"],
+        [["ITEM1", "Desc", "PLIN", "CLS", "UPC", "ED1", "2024-01-01"]],
+    )
+
+    summary = ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    assert summary.has_warnings is True
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        issues = conn.execute(
+            """
+            SELECT * FROM validation_errors
+            WHERE error_type='invalid_date_format' AND column_name='currdate';
+            """
+        ).fetchall()
+        ic_row = conn.execute("SELECT current_date FROM ic_inventory_row;").fetchone()
+
+    assert issues
+    assert ic_row is not None
+    assert ic_row["current_date"] is None
+
+
+def test_mmddyyyy_date_is_parsed_and_stored_as_iso_date(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["ic"],
+        ["ITEM", "ITMDESC", "PLINID", "ITMCLSS", "UPCCODE", "EDITION", "CURRDATE"],
+        [["ITEM1", "Desc", "PLIN", "CLS", "UPC", "ED1", "02/14/2026"]],
+    )
+
+    summary = ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    assert summary.has_warnings is False
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        ic_row = conn.execute("SELECT current_date FROM ic_inventory_row;").fetchone()
+
+    assert ic_row is not None
+    assert ic_row["current_date"] == "2026-02-14"
+
+
+def test_numeric_shipid_is_coerced_to_string(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["vessels_index"],
+        [
+            "SHIPID",
+            "SHIPNAME",
+            "CUSTNO",
+            "IMONO",
+            "SHIPSTAT",
+            "EMAIL",
+            "NOTE1",
+            "NOTE2",
+            "NOTE3",
+        ],
+        [[12345, "Ship", "C1", "IMO", "Active", "ship@example.com", "N1", "N2", "N3"]],
+    )
+
+    ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT ship_id, typeof(ship_id) AS t FROM vessel;").fetchone()
+
+    assert row is not None
+    assert row["ship_id"] == "12345"
+    assert row["t"] == "text"

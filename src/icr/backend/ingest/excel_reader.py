@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -19,6 +20,7 @@ from typing import Callable, Iterable, Mapping, Protocol, Sequence
 from openpyxl import load_workbook
 
 logger = logging.getLogger(__name__)
+_EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class DatabaseLike(Protocol):
@@ -80,6 +82,8 @@ class SheetSpec:
     required_columns: tuple[str, ...]
     key_columns: tuple[str, ...]
     warning_columns: tuple[str, ...]
+    email_columns: tuple[str, ...]
+    date_columns: tuple[str, ...]
     table_name: str
     row_mapper: Callable[[Mapping[str, object]], Mapping[str, object]]
 
@@ -123,8 +127,10 @@ VESSEL_INVENTORY_REQUIRED = (
 IC_SPEC = SheetSpec(
     source_name="safe_ic_inventory",
     required_columns=IC_REQUIRED,
-    key_columns=("item",),
-    warning_columns=(),
+    key_columns=("item","edition"),
+    warning_columns=("currdate",),
+    email_columns=(),
+    date_columns=("currdate",),
     table_name=TABLE_IC_INVENTORY,
     row_mapper=lambda row: {
         "item": row.get("item"),
@@ -134,11 +140,14 @@ IC_SPEC = SheetSpec(
     },
 )
 
+# SHIPID and EMAIL necessary
 VESSEL_INDEX_SPEC = SheetSpec(
     source_name="safe_vessels_index",
     required_columns=VESSEL_INDEX_REQUIRED,
-    key_columns=("shipid",),
-    warning_columns=("email",),
+    key_columns=("shipid","email"),
+    warning_columns=(),
+    email_columns=("email",),
+    date_columns=(),
     table_name=TABLE_VESSEL,
     row_mapper=lambda row: {
         "ship_id": row.get("shipid"),
@@ -157,6 +166,8 @@ VESSEL_INVENTORY_SPEC = SheetSpec(
     required_columns=VESSEL_INVENTORY_REQUIRED,
     key_columns=("shipid", "item"),
     warning_columns=(),
+    email_columns=(),
+    date_columns=(),
     table_name=TABLE_VESSEL_INVENTORY,
     row_mapper=lambda row: {
         "ship_id": row.get("shipid"),
@@ -237,6 +248,7 @@ def _ingest_single_file(
             _persist_validation_issues(db, [issue])
             raise IngestionFatalError(issue.message, [issue])
 
+        # Note any missing header values
         if not any(not _is_blank(cell) for cell in header_values):
             issue = ValidationIssue(
                 row_number=1,
@@ -283,7 +295,7 @@ def _ingest_single_file(
             start=2,
         ):
             rows_seen += 1
-            normalized_row = _extract_row(row, header_map)
+            normalized_row = _extract_row(row, header_map, spec.date_columns)
             if _is_empty_row(normalized_row):
                 row_issues.append(
                     ValidationIssue(
@@ -296,6 +308,7 @@ def _ingest_single_file(
                 )
                 continue
 
+            # Check if all Rows are present
             missing_keys = [
                 key for key in spec.key_columns if _is_blank(normalized_row.get(key))
             ]
@@ -329,6 +342,45 @@ def _ingest_single_file(
                             severity="warning",
                         )
                     )
+
+            for email_column in spec.email_columns:
+                email_value = normalized_row.get(email_column)
+                if not _is_valid_email(email_value):
+                    row_issues.append(
+                        ValidationIssue(
+                            row_number=row_number,
+                            column_name=email_column,
+                            error_type="invalid_email_format",
+                            message=(
+                                f"{spec.source_name}: invalid email format in "
+                                f"'{email_column}' on row {row_number}"
+                            ),
+                            severity="warning",
+                        )
+                    )
+
+            for date_column in spec.date_columns:
+                date_value = normalized_row.get(date_column)
+                if _is_blank(date_value):
+                    continue
+                parsed_date = _parse_mmddyyyy_date(date_value)
+                if parsed_date is None:
+                    row_issues.append(
+                        ValidationIssue(
+                            row_number=row_number,
+                            column_name=date_column,
+                            error_type="invalid_date_format",
+                            message=(
+                                f"{spec.source_name}: invalid date format in "
+                                f"'{date_column}' on row {row_number} "
+                                "(expected MM/DD/YYYY)"
+                            ),
+                            severity="warning",
+                        )
+                    )
+                    normalized_row[date_column] = None
+                else:
+                    normalized_row[date_column] = parsed_date
 
             row_payloads.append((row_number, _serialize_row(spec.source_name, normalized_row)))
             table_payloads.append(spec.row_mapper(normalized_row))
@@ -410,21 +462,33 @@ def _normalize_header(value: object) -> str:
     return str(value).strip().casefold()
 
 
-def _normalize_cell(value: object) -> object:
-    """Normalize cell values without applying business logic."""
+def _normalize_cell(value: object, *, coerce_to_string: bool) -> object:
+    """Normalize cell values with optional text coercion."""
 
+    if value is None:
+        return None
+    if coerce_to_string:
+        return str(value).strip()
     if isinstance(value, str):
         return value.strip()
     return value
 
 
-def _extract_row(row: Sequence[object], header_map: Mapping[str, int]) -> dict[str, object]:
+def _extract_row(
+    row: Sequence[object],
+    header_map: Mapping[str, int],
+    date_columns: Sequence[str],
+) -> dict[str, object]:
     """Build a normalized row mapping using the normalized headers."""
 
+    date_column_set = set(date_columns)
     normalized: dict[str, object] = {}
     for header, index in header_map.items():
         value = row[index] if index < len(row) else None
-        normalized[header] = _normalize_cell(value)
+        normalized[header] = _normalize_cell(
+            value,
+            coerce_to_string=header not in date_column_set,
+        )
     return normalized
 
 
@@ -438,6 +502,29 @@ def _is_blank(value: object) -> bool:
 
 def _is_empty_row(row: Mapping[str, object]) -> bool:
     return all(_is_blank(value) for value in row.values())
+
+
+def _is_valid_email(value: object) -> bool:
+    if _is_blank(value):
+        return True
+    if not isinstance(value, str):
+        return False
+    return bool(_EMAIL_PATTERN.match(value))
+
+
+def _parse_mmddyyyy_date(value: object) -> date | None:
+    if _is_blank(value):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, "%m/%d/%Y").date()
+        except ValueError:
+            return None
+    return None
 
 
 def _serialize_row(source_name: str, row: Mapping[str, object]) -> str:
