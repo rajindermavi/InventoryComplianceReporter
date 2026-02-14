@@ -7,7 +7,8 @@ from typing import Optional
 
 class IssueType(Enum):
     """Classification for inventory compliance issues."""
-
+    
+    OK = "OK"
     OUTDATED = "OUTDATED"
     MISSING_ONBOARD = "MISSING_ONBOARD"
     MISSING_REFERENCE = "MISSING_REFERENCE"

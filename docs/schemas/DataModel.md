@@ -107,17 +107,67 @@ current_date:       date
 
 ---
 
-## Issue Row
-- ship_id
-- item
-- onboard_edition
-- current_edition
-- issue_type: OUTDATED | MISSING_ONBOARD | MISSING_REFERENCE
+# 4. IssueRow
+
+## Required Fields
+
+| Field            | Type   | Required |
+|------------------|--------|----------|
+| ship_id          | string | Yes |
+| item             | string | Yes |
+| onboard_edition  | string | Yes |
+| current_edition  | string | Yes |
+| issue_type       | enum   | Yes |
 
 ---
 
-## Vessel Report
-- vessel
-- issues[]
-- generated_at
-- source_files
+## Allowed Values — issue_type
+
+OK
+OUTDATED
+MISSING_ONBOARD
+MISSING_REFERENCE
+
+
+---
+
+## Schema Definition
+
+IssueRow
+
+ship_id:            string (required)
+item:               string (required)
+onboard_edition:    string (required)
+current_edition:    string (required)
+issue_type:         enum (required)
+
+enum IssueType:
+OK
+OUTDATED
+MISSING_ONBOARD
+MISSING_REFERENCE
+
+
+---
+
+# 5. VesselReport
+
+## Required Fields
+
+| Field         | Type              | Required |
+|---------------|-------------------|----------|
+| vessel        | Vessel            | Yes |
+| issues        | list[IssueRow]    | Yes |
+| generated_at  | datetime          | Yes |
+| source_files  | list[string]      | Yes |
+
+---
+
+## Schema Definition
+
+VesselReport
+
+vessel:         Vessel (required)
+issues:         list[IssueRow] (required)
+generated_at:   datetime (required)
+source_files:   list[string] (required)

@@ -52,90 +52,229 @@ Contracts are defined only at the boundaries between these components.
 
 ---
 
-## 1. Ingestion Component
+# 1. Ingestion Component
 
-### Responsibility
+## Responsibility
 
-Transform external data sources into canonical internal records suitable
-for domain processing.
+Transform external Excel data sources into canonical internal domain records suitable for downstream processing.
 
-### Inputs
+The ingestion component performs:
 
-- User-provided Excel workbooks and worksheets
-
-### Outputs
-
-- Canonical Inventory Records
-- Canonical Reference Records
-
-(See schema documents for authoritative field definitions.)
-
-### Guarantees
-
-- All required fields are present
-- String fields are normalized according to system rules
-- Source-specific column names, aliases, and formats are removed
-- Records conform to the canonical schemas
-
-### Non-Guarantees
-
-- Business logic correctness
-- Cross-record consistency
-
-### Failure Semantics
-
-- Schema violations halt ingestion with explicit, user-visible errors
-- Invalid or malformed records do not proceed to downstream components
-
-### Ownership
-
-- Ingestion owns all schema validation and normalization
-- Downstream components may assume these guarantees without re-validation
+- Header validation
+- Row-level required field validation
+- Type enforcement
+- Email validation
+- Date parsing
+- String normalization
+- Canonical schema transformation
 
 ---
 
-## 2. Domain Comparison Component
+## Inputs
 
-### Responsibility
+- User-provided Excel workbooks
+- First worksheet only
+- Files matching supported SAFE_* patterns
 
-Compare canonical inventory records against canonical reference records
-to identify compliance discrepancies.
+---
 
-### Inputs
+## Outputs
 
-- Canonical Inventory Records
-- Canonical Reference Records
+- Canonical `Vessel` records
+- Canonical `VesselInventoryRow` records
+- Canonical `ICInventoryRow` records
 
-### Assumptions
+(See Data Model schema documents for authoritative field definitions.)
 
-- Inputs conform to canonical schemas
-- No ingestion-specific fields or aliases are present
-- All required fields are non-null and semantically valid
+---
 
-### Outputs
+## Guarantees
 
-- Issue records describing detected discrepancies
+Upon successful completion of ingestion:
 
-### Guarantees
+- All required headers are present
+- All required row-level fields are populated
+- All non-date fields are stored as strings
+- All date fields are parsed into native date types
+- Email fields are validated for proper format
+- String fields are normalized according to system rules
+- Source-specific column names, aliases, and formats are removed
+- Derived fields (e.g., `ams`) are deterministically computed
+- All records conform strictly to canonical domain schemas
 
-- Comparisons are deterministic
+---
+
+## Type Enforcement Rules
+
+- All fields are stored as strings after normalization **except date fields**
+- Date fields must be parsed into native `date` types
+- Email fields must conform to a valid email format
+- Boolean fields are derived explicitly by ingestion logic
+
+If a date fails parsing or an email fails validation:
+
+- The row is flagged with a warning
+- The row may proceed unless a required field is missing
+
+---
+
+## Non-Guarantees
+
+The ingestion component does not guarantee:
+
+- Business logic correctness
+- Cross-record consistency
+- Referential integrity across files
+- Compliance determinations
+
+---
+
+## Failure Semantics
+
+Ingestion halts with explicit, user-visible errors if:
+
+- A required header column is missing
+- A required row-level field is empty after normalization
+- A record cannot be transformed into a canonical schema
+
+Rows with:
+
+- Invalid date formats
+- Invalid email formats
+- Missing non-required business fields
+
+are ingested with warnings unless they violate required field constraints.
+
+No invalid records proceed silently.
+
+---
+
+## Ownership
+
+The ingestion component exclusively owns:
+
+- Schema validation
+- Type enforcement
+- Email validation
+- Date parsing
+- Field normalization
+- Canonical schema transformation
+
+Downstream components may assume these guarantees without re-validation.
+
+---
+# 2. Domain Comparison Component
+
+## Responsibility
+
+Compare canonical vessel inventory records against canonical IC reference records to identify compliance discrepancies.
+
+This component performs pure domain comparison logic only.
+
+---
+
+## Inputs
+
+- Canonical `VesselInventoryRow` records
+- Canonical `ICInventoryRow` records
+- Canonical `Vessel` records
+
+---
+
+## Assumptions
+
+- All inputs conform strictly to canonical schemas
+- All required fields are present and non-null
+- All non-date fields are normalized strings
+- All date fields are native date types
+- No ingestion-specific fields, aliases, or raw source columns exist
+- Email and date validation has already been performed
+- `ams` flags are already derived
+
+No normalization, trimming, parsing, or validation is performed in this component.
+
+---
+
+## Comparison Semantics
+
+Comparisons are performed using:
+
+- `ship_id` as vessel identity key
+- `item` as inventory identity key
+- `onboard_edition` compared against `current_edition`
+
+Comparison rules are:
+
+- Exact string comparison (case-sensitive unless specified elsewhere)
+- No fuzzy matching
+- No alias resolution
+- No format correction
+
+---
+
+## Outputs
+
+- Canonical `Issue` records describing detected discrepancies
+
+Each issue record includes:
+
+- ship_id
+- item
+- onboard_edition
+- current_edition
+- issue_type
+
+---
+
+## Guarantees
+
+- All comparisons are deterministic
+- No randomness or ordering effects influence outcomes
 - Issue classifications are mutually exclusive
-- Output records conform to the canonical Issue schema
+- Each discrepancy produces exactly one issue record
+- Output records conform strictly to the canonical Issue schema
 
-### Non-Guarantees
+---
+
+## Non-Guarantees
+
+This component does not guarantee:
 
 - Graceful handling of malformed inputs
 - Recovery from contract violations
+- Cross-file reconciliation beyond defined comparison rules
+- Business rule interpretation beyond defined compliance logic
 
-### Failure Semantics
+---
 
-- Violations of input assumptions are treated as contract violations
-- Contract violations may raise exceptions or fail fast
+## Failure Semantics
 
-### Ownership
+Violations of input assumptions are treated as contract violations.
 
-- Domain logic owns comparison correctness
-- Domain logic does not perform schema validation or normalization
+If canonical invariants are violated:
+
+- The component may raise exceptions
+- The component may fail fast
+- No attempt is made to repair or normalize data
+
+---
+
+## Ownership
+
+The Domain Comparison Component exclusively owns:
+
+- Comparison logic correctness
+- Compliance classification rules
+- Deterministic issue generation
+
+It does not own:
+
+- Schema validation
+- Type enforcement
+- String normalization
+- Email validation
+- Date parsing
+- Data repair
 
 ---
 
