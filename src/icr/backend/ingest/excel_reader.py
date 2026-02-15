@@ -79,8 +79,10 @@ class SheetSpec:
     """Specification for ingesting a single Excel source."""
 
     source_name: str
+    required_headers: tuple[str, ...]
     required_columns: tuple[str, ...]
-    key_columns: tuple[str, ...]
+    matching_columns: tuple[str, ...]
+    dupe_warning_columns: tuple[str, ...]
     warning_columns: tuple[str, ...]
     email_columns: tuple[str, ...]
     date_columns: tuple[str, ...]
@@ -126,8 +128,10 @@ VESSEL_INVENTORY_REQUIRED = (
 
 IC_SPEC = SheetSpec(
     source_name="safe_ic_inventory",
-    required_columns=IC_REQUIRED,
-    key_columns=("item","edition"),
+    required_headers=IC_REQUIRED,
+    required_columns=("item","edition"),
+    matching_columns=("item","edition"),
+    dupe_warning_columns = ("item",), 
     warning_columns=("currdate",),
     email_columns=(),
     date_columns=("currdate",),
@@ -143,8 +147,10 @@ IC_SPEC = SheetSpec(
 # SHIPID and EMAIL necessary
 VESSEL_INDEX_SPEC = SheetSpec(
     source_name="safe_vessels_index",
-    required_columns=VESSEL_INDEX_REQUIRED,
-    key_columns=("shipid","email"),
+    required_headers=VESSEL_INDEX_REQUIRED,
+    required_columns=("shipid","email"),
+    matching_columns=("shipid",),
+    dupe_warning_columns = ("shipid",), 
     warning_columns=(),
     email_columns=("email",),
     date_columns=(),
@@ -163,9 +169,11 @@ VESSEL_INDEX_SPEC = SheetSpec(
 
 VESSEL_INVENTORY_SPEC = SheetSpec(
     source_name="safe_vessels_inventory",
-    required_columns=VESSEL_INVENTORY_REQUIRED,
-    key_columns=("shipid", "item"),
-    warning_columns=(),
+    required_headers=VESSEL_INVENTORY_REQUIRED,
+    required_columns=("shipid", "item"),
+    matching_columns=("shipid","edition"),
+    dupe_warning_columns = ("shipid","item",), 
+    warning_columns=("edition",),
     email_columns=(),
     date_columns=(),
     table_name=TABLE_VESSEL_INVENTORY,
@@ -261,7 +269,7 @@ def _ingest_single_file(
             raise IngestionFatalError(issue.message, [issue])
 
         header_map, header_warnings = _normalize_headers(header_values, spec)
-        missing_columns = sorted(set(spec.required_columns) - set(header_map))
+        missing_columns = sorted(set(spec.required_headers) - set(header_map))
         issues: list[ValidationIssue] = []
         if header_warnings:
             issues.extend(header_warnings)
@@ -289,6 +297,7 @@ def _ingest_single_file(
         row_payloads: list[tuple[int, str]] = []
         table_payloads: list[Mapping[str, object]] = []
         row_issues: list[ValidationIssue] = []
+        first_seen_dupe_keys: dict[tuple[object, ...], int] = {}
 
         for row_number, row in enumerate(
             worksheet.iter_rows(min_row=2, values_only=True),
@@ -309,18 +318,18 @@ def _ingest_single_file(
                 continue
 
             # Check if all Rows are present
-            missing_keys = [
-                key for key in spec.key_columns if _is_blank(normalized_row.get(key))
+            missing_required_columns = [
+                req_col for req_col in spec.required_columns if _is_blank(normalized_row.get(req_col))
             ]
-            if missing_keys:
-                for key in missing_keys:
+            if missing_required_columns:
+                for req_col in missing_required_columns:
                     row_issues.append(
                         ValidationIssue(
                             row_number=row_number,
-                            column_name=key,
-                            error_type="missing_key_field",
+                            column_name=req_col,
+                            error_type="missing_req_col_field",
                             message=(
-                                f"{spec.source_name}: missing key field '{key}' "
+                                f"{spec.source_name}: missing req_col field '{req_col}' "
                                 f"on row {row_number}"
                             ),
                             severity="warning",
@@ -381,6 +390,33 @@ def _ingest_single_file(
                     normalized_row[date_column] = None
                 else:
                     normalized_row[date_column] = parsed_date
+
+            for matching_column in spec.matching_columns:
+                _normalize_matching_columns(normalized_row, matching_column)
+
+            dupe_warning_key = _build_dupe_warning_key(
+                normalized_row,
+                spec.dupe_warning_columns,
+            )
+            if dupe_warning_key is not None:
+                first_seen_row = first_seen_dupe_keys.get(dupe_warning_key)
+                if first_seen_row is None:
+                    first_seen_dupe_keys[dupe_warning_key] = row_number
+                else:
+                    columns = ", ".join(spec.dupe_warning_columns)
+                    row_issues.append(
+                        ValidationIssue(
+                            row_number=row_number,
+                            column_name=columns,
+                            error_type="duplicate_key_values",
+                            message=(
+                                f"{spec.source_name}: duplicate values for columns "
+                                f"({columns}) on row {row_number}; first seen on row "
+                                f"{first_seen_row}"
+                            ),
+                            severity="warning",
+                        )
+                    )
 
             row_payloads.append((row_number, _serialize_row(spec.source_name, normalized_row)))
             table_payloads.append(spec.row_mapper(normalized_row))
@@ -472,6 +508,39 @@ def _normalize_cell(value: object, *, coerce_to_string: bool) -> object:
     if isinstance(value, str):
         return value.strip()
     return value
+
+
+def _normalize_matching_columns(row: dict[str, object], column_name: str) -> None:
+    """Normalize matching-key text fields (ids/editions/items) for comparison joins."""
+
+    row[column_name] = _normalize_matching_value(row.get(column_name))
+
+
+def _normalize_matching_value(value: object) -> object:
+    """Apply trim, whitespace collapse, and casefold to matching-key values."""
+
+    if value is None:
+        return None
+    text = value if isinstance(value, str) else str(value)
+    normalized = " ".join(text.strip().split()).casefold()
+    return normalized
+
+
+def _build_dupe_warning_key(
+    row: Mapping[str, object],
+    columns: Sequence[str],
+) -> tuple[object, ...] | None:
+    """Build duplicate-warning key for configured columns; skip partial/blank keys."""
+
+    if not columns:
+        return None
+    key_parts: list[object] = []
+    for column_name in columns:
+        value = row.get(column_name)
+        if _is_blank(value):
+            return None
+        key_parts.append(value)
+    return tuple(key_parts)
 
 
 def _extract_row(

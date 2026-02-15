@@ -115,9 +115,14 @@ current_date:       date
 |------------------|--------|----------|
 | ship_id          | string | Yes |
 | item             | string | Yes |
-| onboard_edition  | string | Yes |
 | current_edition  | string | Yes |
 | issue_type       | enum   | Yes |
+
+## Optional Fields
+
+| Field            | Type   | Required |
+|------------------|--------|----------|
+| onboard_edition  | string | No |
 
 ---
 
@@ -137,7 +142,7 @@ IssueRow
 
 ship_id:            string (required)
 item:               string (required)
-onboard_edition:    string (required)
+onboard_edition:    string 
 current_edition:    string (required)
 issue_type:         enum (required)
 

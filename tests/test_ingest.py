@@ -273,7 +273,7 @@ def test_duplicate_headers_warn_and_use_first_column(
 
     assert warnings
     assert row is not None
-    assert row["item"] == "FIRST"
+    assert row["item"] == "first"
 
 
 def test_missing_key_fields_skip_rows_with_warning(
@@ -305,7 +305,7 @@ def test_missing_key_fields_skip_rows_with_warning(
         issues = conn.execute(
             """
             SELECT * FROM validation_errors
-            WHERE error_type='missing_key_field' AND column_name='item';
+            WHERE error_type='missing_req_col_field' AND column_name='item';
             """
         ).fetchall()
 
@@ -390,7 +390,7 @@ def test_invalid_date_format_warns_and_sets_null_current_date(
             WHERE error_type='invalid_date_format' AND column_name='currdate';
             """
         ).fetchall()
-        ic_row = conn.execute("SELECT current_date FROM ic_inventory_row;").fetchone()
+        ic_row = conn.execute('SELECT "current_date" FROM ic_inventory_row;').fetchone()
 
     assert issues
     assert ic_row is not None
@@ -421,7 +421,7 @@ def test_mmddyyyy_date_is_parsed_and_stored_as_iso_date(
 
     with db.connect() as conn:
         conn.row_factory = sqlite3.Row
-        ic_row = conn.execute("SELECT current_date FROM ic_inventory_row;").fetchone()
+        ic_row = conn.execute('SELECT "current_date" FROM ic_inventory_row;').fetchone()
 
     assert ic_row is not None
     assert ic_row["current_date"] == "2026-02-14"
