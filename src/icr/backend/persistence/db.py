@@ -34,6 +34,33 @@ class RunMetadata:
 
 
 SCHEMA_SQL = """
+
+CREATE TABLE vessel (
+    ship_id TEXT NOT NULL,
+    ship_name TEXT,
+    customer_no TEXT,
+    imo_no TEXT,
+    ship_status TEXT,
+    ship_email TEXT NOT NULL,
+    office_email TEXT,
+    ams INTEGER NOT NULL
+);
+
+CREATE TABLE vessel_inventory_row (
+    ship_id TEXT NOT NULL,
+    item TEXT NOT NULL,
+    onboard_edition TEXT,
+    store_edition TEXT,
+    description TEXT
+);
+
+CREATE TABLE ic_inventory_row (
+    item TEXT NOT NULL,
+    current_edition TEXT NOT NULL,
+    description TEXT,
+    current_date TEXT
+);
+
 CREATE TABLE metadata (
     run_id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,

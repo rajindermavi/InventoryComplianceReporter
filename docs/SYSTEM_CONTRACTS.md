@@ -231,6 +231,7 @@ Each issue record includes:
 - All comparisons are deterministic
 - No randomness or ordering effects influence outcomes
 - Issue classifications are mutually exclusive
+- Each matching row produces exactly one 'OK' issue record
 - Each discrepancy produces exactly one issue record
 - Output records conform strictly to the canonical Issue schema
 
@@ -278,95 +279,151 @@ It does not own:
 
 ---
 
-## 3. Issue Classification Component
+# 3. Reporting Component
 
-### Responsibility
+## Responsibility
 
-Assign standardized classifications to detected discrepancies.
+Aggregate classified `Issue` records into structured vessel-level reports and prepare them for human-readable presentation.
 
-### Inputs
+This component performs presentation-layer aggregation and transformation only.
 
-- Raw comparison results produced by the Domain Comparison component
-
-### Outputs
-
-- Classified Issue records
-
-### Assumptions
-
-- Input discrepancies are complete and internally consistent
-
-### Guarantees
-
-- Each issue receives exactly one classification
-- Classifications are stable and documented
-
-### Failure Semantics
-
-- Ambiguous or incomplete inputs are treated as contract violations
+It does not perform compliance logic or classification.
 
 ---
 
-## 4. Reporting Component
+## Inputs
 
-### Responsibility
-
-Transform classified issue records into human-readable reports.
-
-### Inputs
-
-- Classified Issue records
-
-### Outputs
-
-- Structured report representations (e.g. HTML-ready data)
-
-### Assumptions
-
-- Input issues conform to the Issue schema
-- No Optional or partially populated fields unless explicitly documented
-
-### Guarantees
-
-- Reports faithfully represent issue data
-- No additional business logic is introduced
-
-### Failure Semantics
-
-- Contract violations result in explicit failures, not silent omissions
+* Canonical `Issue` records
+* Canonical `Vessel` records
+* Reporting metadata (e.g., `generated_at`, `source_files`)
 
 ---
 
-## 5. Delivery Component
+## Assumptions
 
-### Responsibility
+* All Issue records conform strictly to the canonical `Issue` schema
+* All Vessel records conform strictly to the canonical `Vessel` schema
+* Every Issue references a valid `ship_id`
+* No partially populated Issue records exist unless explicitly documented
+* Domain Comparison has already produced complete and deterministic results
+
+No comparison, normalization, classification, or validation is performed in this component.
+
+---
+
+## Aggregation Semantics
+
+Reporting performs the following transformations:
+
+* Group Issue records by `ship_id`
+* Associate each group with its corresponding `Vessel` record
+* Preserve all Issue records (including `OK`)
+* Preserve deterministic ordering if defined upstream
+
+No filtering or reinterpretation of Issue records is allowed.
+
+---
+
+## Outputs
+
+* Canonical `VesselReport` objects
+
+Each `VesselReport` includes:
+
+* vessel (canonical `Vessel`)
+* issues[] (all Issue records for that vessel)
+* generated_at (timestamp)
+* source_files (metadata describing input provenance)
+
+These objects may then be transformed into:
+
+* HTML-ready structures
+* JSON payloads
+* Other presentation formats
+
+---
+
+## Guarantees
+
+* Reports faithfully represent domain Issue data
+* No Issue records are dropped or reclassified
+* No additional compliance logic is introduced
+* Aggregation is deterministic
+* Output conforms strictly to the canonical `VesselReport` schema
+
+---
+
+## Non-Guarantees
+
+This component does not guarantee:
+
+* Correction of malformed Issue records
+* Recovery from contract violations
+* Business rule interpretation beyond presentation aggregation
+* Deduplication beyond upstream guarantees
+
+---
+
+## Failure Semantics
+
+Violations of input assumptions are treated as contract violations.
+
+If canonical invariants are violated:
+
+* The component may raise exceptions
+* The component may fail fast
+* No attempt is made to repair or infer missing data
+
+---
+
+## Ownership
+
+The Reporting Component exclusively owns:
+
+* Vessel-level aggregation of Issue records
+* Construction of canonical `VesselReport` objects
+* Presentation-ready transformation logic
+
+It does not own:
+
+* Compliance comparison rules
+* Issue classification
+* Schema validation
+* Data normalization
+* Business policy decisions
+
+---
+
+# 4. Delivery Component
+
+## Responsibility
 
 Deliver generated reports via supported mechanisms (export, email, PDF).
 
-### Inputs
+## Inputs
 
 - Rendered report representations
 
-### Outputs
+## Outputs
 
 - Files or messages delivered to user-selected destinations
 
-### Assumptions
+## Assumptions
 
 - Inputs are complete and renderable
 
-### Guarantees
+## Guarantees
 
 - Delivery mechanisms do not alter report content
 
-### Failure Semantics
+## Failure Semantics
 
 - Delivery failures are surfaced to the user
 - Delivery failures do not corrupt report data
 
 ---
 
-## Contract Enforcement Philosophy
+# Contract Enforcement Philosophy
 
 - Contracts are enforced at component boundaries
 - Internal helpers may assume upstream guarantees
@@ -374,7 +431,7 @@ Deliver generated reports via supported mechanisms (export, email, PDF).
 
 ---
 
-## Change Management
+# Change Management
 
 - Changes to this document are **architectural changes**
 - Schema changes must be reflected here if they alter guarantees
@@ -382,7 +439,7 @@ Deliver generated reports via supported mechanisms (export, email, PDF).
 
 ---
 
-## Summary
+# Summary
 
 - Contracts define system truth
 - Schemas define structure

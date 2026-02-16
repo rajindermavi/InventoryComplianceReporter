@@ -5,6 +5,7 @@
 - Classifying inventory discrepancies into issue rows
 """
 
+from .ams_vessels import discover_ams_vessels, process_vessels
 from .compare import compare_inventory
 from .models import IssueRow, IssueType
 from .queries import get_ams_vessels, get_onboard_inventory, get_reference_inventory
@@ -13,7 +14,9 @@ __all__ = [
     "IssueRow",
     "IssueType",
     "compare_inventory",
+    "discover_ams_vessels",
     "get_ams_vessels",
     "get_onboard_inventory",
     "get_reference_inventory",
+    "process_vessels",
 ]
