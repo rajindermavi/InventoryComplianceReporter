@@ -35,6 +35,7 @@ def test_compare_inventory_returns_missing_reference_for_onboard_only_item() -> 
     )
 
     assert [row.issue_type for row in result] == [IssueType.MISSING_REFERENCE]
+    assert result[0].current_edition is None
 
 
 def test_compare_inventory_returns_missing_onboard_when_onboard_edition_empty() -> None:

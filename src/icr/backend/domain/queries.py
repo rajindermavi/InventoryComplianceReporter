@@ -20,7 +20,7 @@ def get_ams_vessels(conn: sqlite3.Connection) -> Iterable[sqlite3.Row]:
             ams,
             ship_email,
             office_email
-        FROM vessels
+        FROM vessel
         WHERE ams = 1
         ORDER BY ship_id
     """
@@ -37,7 +37,7 @@ def get_onboard_inventory(
             ship_id,
             item,
             onboard_edition
-        FROM onboard_inventory
+        FROM vessel_inventory_row
         WHERE ship_id = ?
         ORDER BY item
     """
@@ -51,7 +51,7 @@ def get_reference_inventory(conn: sqlite3.Connection) -> Iterable[sqlite3.Row]:
         SELECT
             item,
             current_edition
-        FROM reference_inventory
+        FROM ic_inventory_row
         ORDER BY item
     """
     return conn.execute(query).fetchall()

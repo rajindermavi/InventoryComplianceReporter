@@ -8,6 +8,9 @@ All tables below represent validated and normalized data produced by the ingesti
 
 # 1. Vessel
 
+## Name
+vessel
+
 ## Required Fields
 
 | Field       | Type    | Required |
@@ -46,6 +49,9 @@ ams:            boolean (required)
 
 # 2. VesselInventoryRow
 
+## Name
+vessel_inventory_row
+
 ## Required Fields
 
 | Field   | Type   | Required |
@@ -78,6 +84,9 @@ description:        string
 
 # 3. ICInventoryRow
 
+## Name
+ic_inventory_row
+
 ## Required Fields
 
 | Field            | Type | Required |
@@ -109,13 +118,16 @@ current_date:       date
 
 # 4. IssueRow
 
+## Name
+issue_row
+
+
 ## Required Fields
 
 | Field            | Type   | Required |
 |------------------|--------|----------|
 | ship_id          | string | Yes |
 | item             | string | Yes |
-| current_edition  | string | Yes |
 | issue_type       | enum   | Yes |
 
 ## Optional Fields
@@ -123,6 +135,7 @@ current_date:       date
 | Field            | Type   | Required |
 |------------------|--------|----------|
 | onboard_edition  | string | No |
+| current_edition  | string | Conditional |
 
 ---
 
@@ -142,9 +155,13 @@ IssueRow
 
 ship_id:            string (required)
 item:               string (required)
-onboard_edition:    string 
-current_edition:    string (required)
+onboard_edition:    string
+current_edition:    string | null (required unless issue_type == MISSING_REFERENCE)
 issue_type:         enum (required)
+
+Rule:
+- If `issue_type == MISSING_REFERENCE`, `current_edition` must be `null`.
+- Otherwise, `current_edition` must be a non-empty string.
 
 enum IssueType:
 OK
@@ -156,6 +173,10 @@ MISSING_REFERENCE
 ---
 
 # 5. VesselReport
+
+## Name
+vessel_report
+
 
 ## Required Fields
 

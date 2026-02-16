@@ -34,7 +34,7 @@ def compare_inventory(
                     ship_id=ship_id,
                     item=item_key,
                     onboard_edition=onboard_edition,
-                    current_edition='NA',
+                    current_edition=None,
                     issue_type=IssueType.MISSING_REFERENCE,
                 )
             )
