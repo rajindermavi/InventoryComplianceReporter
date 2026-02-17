@@ -51,6 +51,56 @@ The `app.py` module:
 
 ## Frontend Modules
 
+### `frontend/gui.py`
+Owns the client interface: tkinter gui
+
+Design
+- Tab 1: Config 
+  - input fields for paths
+- Tab 2: Generate Report
+  - layout
+    - buttons: Fetch Vessls, Select Vessels, Process, Cancel
+    - initially only Fetch Vessels is clickable
+  - button `Fetch Vessels`
+    - calls `discover_ams_vessels`
+    - After the above, Select Vessels is now clickable
+  - button `Select Vessels`
+    - creates pop up for vessel selection
+    - After the above Process is now clickable
+  - button `Process` 
+    - calls  `process_vessels`
+    - after clicking `Cancel` button is clickable
+- Tab 3: Review Report
+  - Window to show current report the run_summary.html
+  - Scroll of ships, clicking on a ship opens a popup with ship report.
+    - show ship_name (ship_id) on each line
+    - clicking creates a popup with <ship_id>_report.html
+- Tab 4: Export
+  - placeholder
+
+
+Responsibilities
+- Fields for searching for the 3 files
+  - ic_inventory
+  - vessels_index
+  - vessels_inventory
+- Show popup error message if initialize workflow fails
+- On `Fetch Vessels` use the discover_ams_vessels for the ship list
+  - The data is of the form list[Mapping[str, Any]]
+  - ship_id is the identifier
+  - The display labels are 'ship_name (ship_id)', if ship_name is missing, just use ship_id
+- On `Select Vessels`, generate a pop up with options for generating the report
+  - Select all ships
+  - clear all ships
+  - select the checkbox for an idividual ship
+  - done to complete ship selection
+- After selection show selected ships and wait
+- now `process` button is clickable
+  - clicking initiates `process_vessels`
+  - show spinner while waiting for result
+  - freeze process button while running
+  - allow click `Cancel` to cancel process_vessels
+
 ### `frontend/flow.py`
 Owns the **primary application workflow**.
 
@@ -72,6 +122,10 @@ Handles **vessel selection UI**.
 
 Responsibilities:
 - Display list of AMS vessels
+- Use the discover_ams_vessels for the ship list
+  - The data is of the form list[Mapping[str, Any]]
+  - ship_id is the identifier
+  - The display labels are 'ship_name (ship_id)', if ship_name is missing, just use ship_id
 - Allow:
   - Select All
   - Select None
