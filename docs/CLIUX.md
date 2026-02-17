@@ -57,20 +57,26 @@ Owns the client interface: tkinter gui
 Design
 - Tab 1: Config 
   - input fields for paths
+  - file picker / browser to find files
+  - changes are auto applied on selection
+  - cleared on startup
 - Tab 2: Generate Report
   - layout
-    - buttons: Fetch Vessls, Select Vessels, Process, Cancel
+    - buttons: Fetch Vessls, Select Vessels, Process
     - initially only Fetch Vessels is clickable
   - button `Fetch Vessels`
-    - calls `discover_ams_vessels`
+    - calls `initialize_workflow` and `discover_ams_vessels`
     - After the above, Select Vessels is now clickable
   - button `Select Vessels`
     - creates pop up for vessel selection
     - After the above Process is now clickable
+    - re clicking `Select Vessels` opens the window with previous selections preserved
   - button `Process` 
     - calls  `process_vessels`
-    - after clicking `Cancel` button is clickable
+    - allow reclicking Process
 - Tab 3: Review Report
+  - Utilize tkinterweb
+  - initially report windows are empty
   - Window to show current report the run_summary.html
   - Scroll of ships, clicking on a ship opens a popup with ship report.
     - show ship_name (ship_id) on each line
@@ -99,7 +105,6 @@ Responsibilities
   - clicking initiates `process_vessels`
   - show spinner while waiting for result
   - freeze process button while running
-  - allow click `Cancel` to cancel process_vessels
 
 ### `frontend/flow.py`
 Owns the **primary application workflow**.

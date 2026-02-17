@@ -49,6 +49,11 @@ COMPLETION = {
 }
 
 ERRORS = {
+    "initialization_failure":{
+        "title": "Initialization Fail.",
+        "body": "Unable to resolve paths.",
+        "next_step": "Please ensure the paths are correct and try again.",
+    },
     "backend_unavailable": {
         "title": "Backend is unavailable.",
         "body": "The application cannot start because backend services are not available.",
