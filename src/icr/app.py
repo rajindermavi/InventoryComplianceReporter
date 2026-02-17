@@ -1,23 +1,22 @@
 """Application entry point for Inventory Compliance Reporter.
 
 Responsibilities:
-- Invoke the frontend flow
+- Invoke the frontend (GUI or console flow)
 - Handle top-level exceptions
-
-Implementation deferred to Phase 6.
 """
 
-from icr.frontend import flow
+import sys
+
+from icr.frontend.gui import run_gui
 
 
 def main() -> None:
-    """Run the application frontend flow."""
+    """Run the GUI application."""
     try:
-        flow.run_flow()
-    except NotImplementedError:
-        raise
+        run_gui()
     except Exception as exc:
-        raise RuntimeError("Frontend execution failed.") from exc
+        print(f"Application error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

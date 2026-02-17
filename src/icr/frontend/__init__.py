@@ -4,9 +4,11 @@
 * Progress and status messaging
 * User confirmation and intent validation
 * Graceful error reporting
+* GUI (tkinter) frontend
 """
 
 from .flow import ConsoleIO, FrontendIO, run_flow
+from .gui import run_gui
 from .messages import COMPLETION, ERRORS, PROGRESS, PROMPTS, SELECTION, STATUS, WELCOME
 from .selection import SelectionIO, select_vessels
 
@@ -22,5 +24,6 @@ __all__ = [
     "SelectionIO",
     "WELCOME",
     "run_flow",
+    "run_gui",
     "select_vessels",
 ]
