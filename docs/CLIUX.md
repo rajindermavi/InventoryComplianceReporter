@@ -60,6 +60,7 @@ Design
   - file picker / browser to find files
   - changes are auto applied on selection
   - cleared on startup
+  - No downstream buttons are clickable until this step is complete
 - Tab 2: Generate Report
   - layout
     - buttons: Fetch Vessls, Select Vessels, Process
@@ -77,7 +78,7 @@ Design
 - Tab 3: Review Report
   - Utilize tkinterweb
   - initially report windows are empty
-  - Window to show current report the run_summary.html
+  - Window to show current report the run_summary.html when available
   - Scroll of ships, clicking on a ship opens a popup with ship report.
     - show ship_name (ship_id) on each line
     - clicking creates a popup with <ship_id>_report.html

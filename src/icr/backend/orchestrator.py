@@ -209,6 +209,7 @@ class WorkflowState:
             "source_files": self._get_source_filenames(),
             "vessels": vessels_processed,
             "errors": [],
+            "summary_html_path":summary_html_path
         }
         
         summary_json_path = self.paths.run_dir / "summary.json"
