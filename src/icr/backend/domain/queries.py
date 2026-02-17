@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Iterable
+from typing import Any, Iterable, Mapping
 
 
 def _ensure_row_factory(conn: sqlite3.Connection) -> None:
@@ -11,7 +11,7 @@ def _ensure_row_factory(conn: sqlite3.Connection) -> None:
         conn.row_factory = sqlite3.Row
 
 
-def get_ams_vessels(conn: sqlite3.Connection) -> Iterable[sqlite3.Row]:
+def get_ams_vessels(conn: sqlite3.Connection) -> Iterable[Mapping[str, Any]]:
     """Return all vessels marked as AMS."""
     _ensure_row_factory(conn)
     query = """
@@ -24,12 +24,13 @@ def get_ams_vessels(conn: sqlite3.Connection) -> Iterable[sqlite3.Row]:
         WHERE ams = 1
         ORDER BY ship_id
     """
-    return conn.execute(query).fetchall()
+    rows = conn.execute(query).fetchall()
+    return [dict(row) for row in rows]
 
 
 def get_onboard_inventory(
     conn: sqlite3.Connection, ship_id: str
-) -> Iterable[sqlite3.Row]:
+) -> Iterable[Mapping[str, Any]]:
     """Return onboard inventory records for the given vessel."""
     _ensure_row_factory(conn)
     query = """
@@ -41,10 +42,11 @@ def get_onboard_inventory(
         WHERE ship_id = ?
         ORDER BY item
     """
-    return conn.execute(query, (ship_id,)).fetchall()
+    rows = conn.execute(query, (ship_id,)).fetchall()
+    return [dict(row) for row in rows]
 
 
-def get_reference_inventory(conn: sqlite3.Connection) -> Iterable[sqlite3.Row]:
+def get_reference_inventory(conn: sqlite3.Connection) -> Iterable[Mapping[str, Any]]:
     """Return reference (IC) inventory records."""
     _ensure_row_factory(conn)
     query = """
@@ -54,4 +56,5 @@ def get_reference_inventory(conn: sqlite3.Connection) -> Iterable[sqlite3.Row]:
         FROM ic_inventory_row
         ORDER BY item
     """
-    return conn.execute(query).fetchall()
+    rows = conn.execute(query).fetchall()
+    return [dict(row) for row in rows]

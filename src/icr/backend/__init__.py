@@ -18,11 +18,9 @@ from .domain import (
     IssueRow,
     IssueType,
     compare_inventory,
-    discover_ams_vessels,
     get_ams_vessels,
     get_onboard_inventory,
     get_reference_inventory,
-    process_vessels,
 )
 from .emailer import (
     DEFAULT_SUBJECT_TEMPLATE,
@@ -51,7 +49,15 @@ from .persistence import (
     get_run_dir,
     get_runs_base_dir,
 )
-from .reporting import render_run_summary, render_vessel_report
+from .reporting import (
+    render_run_summary, 
+    render_vessel_report,
+)
+from .orchestrator import (
+    discover_ams_vessels,
+    initialize_workflow,
+    process_vessels,
+)
 
 __all__ = [
     "DEFAULT_SUBJECT_TEMPLATE",
@@ -87,6 +93,7 @@ __all__ = [
     "get_run_dir",
     "get_runs_base_dir",
     "ingest_excel_files",
+    "initialize_workflow",
     "process_vessels",
     "render_run_summary",
     "render_vessel_report",

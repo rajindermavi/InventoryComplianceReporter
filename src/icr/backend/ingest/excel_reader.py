@@ -299,6 +299,8 @@ def _ingest_single_file(
         table_payloads: list[Mapping[str, object]] = []
         row_issues: list[ValidationIssue] = []
         first_seen_dupe_keys: dict[tuple[object, ...], int] = {}
+        consecutive_empty_rows = 0
+        max_consecutive_empty = 100  # Stop after 100 consecutive empty rows
 
         for row_number, row in enumerate(
             worksheet.iter_rows(min_row=2, values_only=True),
@@ -307,6 +309,16 @@ def _ingest_single_file(
             rows_seen += 1
             normalized_row = _extract_row(row, header_map, spec.date_columns)
             if _is_empty_row(normalized_row):
+                consecutive_empty_rows += 1
+
+                # Stop processing if we hit too many consecutive empty rows
+                if consecutive_empty_rows >= max_consecutive_empty:
+                    logger.info(
+                        f"[{paths.run_id}] {spec.source_name}: stopping after "
+                        f"{max_consecutive_empty} consecutive empty rows at row {row_number}"
+                    )
+                    break
+
                 row_issues.append(
                     ValidationIssue(
                         row_number=row_number,
@@ -317,6 +329,9 @@ def _ingest_single_file(
                     )
                 )
                 continue
+
+            # Reset counter when we find a non-empty row
+            consecutive_empty_rows = 0
 
             # Check if all Rows are present
             missing_required_columns = [
