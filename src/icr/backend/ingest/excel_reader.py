@@ -172,7 +172,7 @@ VESSEL_INVENTORY_SPEC = SheetSpec(
     source_name="safe_vessels_inventory",
     required_headers=VESSEL_INVENTORY_REQUIRED,
     required_columns=("shipid", "item"),
-    matching_columns=("shipid","edition"),
+    matching_columns=("shipid","item","edition"),
     dupe_warning_columns = ("shipid","item",), 
     warning_columns=("edition",),
     email_columns=(),
@@ -325,7 +325,7 @@ def _ingest_single_file(
                         column_name=None,
                         error_type="empty_row",
                         message=f"{spec.source_name}: empty row {row_number}",
-                        severity="warning",
+                        severity="info",
                     )
                 )
                 continue
