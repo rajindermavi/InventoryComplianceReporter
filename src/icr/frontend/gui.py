@@ -130,7 +130,7 @@ class ICRApp:
     """Main GUI application with 4 tabs."""
 
     def __init__(self, root: tk.Tk) -> None:
-        logger.info('Initialize gui')
+        logger.debug('Initialize gui')
         self.root = root
         self.root.title(messages.WELCOME["title"])
         self.root.geometry("800x600")
@@ -647,10 +647,10 @@ class ICRApp:
             self._progress.pack_forget()
     
     def log_state(self):
-        logger.info("="*10 + " LOG STATE " + "="*10)
-        logger.info(f"ic_inventory: {self._ic_inventory.get()}")
-        logger.info(f"vessel_index: {self._vessels_index.get()}")
-        logger.info(f"vessels_inventory: {self._vessels_inventory.get()}")
+        logger.debug("="*10 + " LOG STATE " + "="*10)
+        logger.debug(f"ic_inventory: {self._ic_inventory.get()}")
+        logger.debug(f"vessel_index: {self._vessels_index.get()}")
+        logger.debug(f"vessels_inventory: {self._vessels_inventory.get()}")
 
 
 
