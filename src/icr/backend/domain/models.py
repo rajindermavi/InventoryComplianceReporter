@@ -19,7 +19,9 @@ class IssueRow:
     """Domain record representing a single compliance issue."""
 
     ship_id: str
+    ship_name: Optional[str]
     item: str
+    item_description: Optional[str]
     onboard_edition: Optional[str]
     current_edition: Optional[str]
     issue_type: IssueType

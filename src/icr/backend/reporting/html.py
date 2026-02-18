@@ -15,7 +15,8 @@ from icr.backend.domain.models import IssueType
 
 def render_vessel_report(
     vessel: Mapping[str, Any],
-    issues: Sequence[Any],
+    problem_issues: Sequence[Any],
+    ok_issues: Sequence[Any],
     *,
     run_timestamp: str,
 ) -> str:
@@ -44,13 +45,17 @@ def render_vessel_report(
         "<h1>Inventory Compliance Report</h1>",
         f'<p class="meta"><strong>Vessel:</strong> {escape(vessel_label)}</p>',
         f'<p class="meta"><strong>Run timestamp:</strong> {escape(run_timestamp)}</p>',
-        "<h2>Discrepancies</h2>",
+        "<h2>Inventory Audit</h2>",
     ]
 
-    if issues:
-        lines.append(_render_issue_table(issues))
+    if problem_issues:
+        lines.append("<h3>Discrepancies</h3>")
+        lines.append(_render_issue_table(problem_issues))
     else:
-        lines.append('<p class="ok">No issues found for this vessel.</p>')
+        lines.append('<p class="ok">No discrepancies found for this vessel.</p>')
+    if ok_issues:
+        lines.append("<h3>Matches</h3>")
+        lines.append(_render_issue_table(ok_issues))
 
     lines.extend(["</body>", "</html>"])
     return "\n".join(lines)
@@ -113,12 +118,14 @@ def _render_issue_table(issues: Sequence[Any]) -> str:
     rows = []
     for issue in issues:
         item = _coerce_text(_get_field(issue, "item"))
+        item_description = _coerce_text(_get_field(issue, "item_description"))
         onboard = _format_optional(_get_field(issue, "onboard_edition"))
         current = _format_optional(_get_field(issue, "current_edition"))
         issue_type = _format_issue_type(_get_field(issue, "issue_type"))
         rows.append(
             "<tr>"
             f"<td>{escape(item)}</td>"
+            f"<td>{escape(item_description)}</td>"
             f"<td>{escape(onboard)}</td>"
             f"<td>{escape(current)}</td>"
             f"<td>{escape(issue_type)}</td>"
@@ -128,6 +135,7 @@ def _render_issue_table(issues: Sequence[Any]) -> str:
     header = (
         "<tr>"
         "<th>Item</th>"
+        "<th>Item Description</th>"
         "<th>Onboard Edition</th>"
         "<th>Current Edition</th>"
         "<th>Issue Type</th>"

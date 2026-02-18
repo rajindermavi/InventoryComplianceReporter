@@ -136,19 +136,19 @@ class WorkflowState:
             
         vessels_processed = []
         total_issues = 0
-        
         for vessel_id in vessel_ids:
             vessel = self._get_vessel_by_id(vessel_id)
             if not vessel:
                 logger.warning(f"Vessel {vessel_id} not found, skipping")
                 continue
-                
+            vessel_name = vessel.get('ship_name')
             # Compare inventory
             with self.db.connect() as conn:
                 onboard_items = list(get_onboard_inventory(conn, vessel_id))
                 
             issues = compare_inventory(
                 ship_id=vessel_id,
+                ship_name=vessel_name,
                 onboard_items=onboard_items,
                 reference_items=reference_items,
                 deduplicate=True,
@@ -159,11 +159,16 @@ class WorkflowState:
                 issue for issue in issues 
                 if issue.issue_type.value != "OK"
             ]
+            ok_issues = [
+                issue for issue in issues 
+                if issue.issue_type.value == "OK"
+            ]
             
             # Generate HTML report
             html_content = render_vessel_report(
                 vessel=vessel,
-                issues=problem_issues,
+                problem_issues=problem_issues,
+                ok_issues = ok_issues,
                 run_timestamp=self._get_timestamp(),
             )
             

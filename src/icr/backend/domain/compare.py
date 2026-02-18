@@ -6,6 +6,7 @@ from .models import IssueRow, IssueType
 
 def compare_inventory(
     ship_id: str,
+    ship_name: Optional[str],
     onboard_items: Iterable[Mapping[str, Any]],
     reference_items: Iterable[Mapping[str, Any]],
     *,
@@ -27,12 +28,15 @@ def compare_inventory(
         reference_record = reference_by_item.get(item_key)
         current_edition = None if reference_record is None else reference_record.get("current_edition")
         onboard_edition = record.get("onboard_edition") 
+        item_description = None if reference_record is None else reference_record.get('description')
 
         if reference_record is None:
             issues.append(
                 IssueRow(
                     ship_id=ship_id,
+                    ship_name=ship_name,
                     item=item_key,
+                    item_description=item_description,
                     onboard_edition=onboard_edition,
                     current_edition=None,
                     issue_type=IssueType.MISSING_REFERENCE,
@@ -45,7 +49,9 @@ def compare_inventory(
             issues.append(
                 IssueRow(
                     ship_id=ship_id,
+                    ship_name=ship_name,
                     item=item_key,
+                    item_description=item_description,
                     onboard_edition=onboard_edition,
                     current_edition=current_edition,
                     issue_type=IssueType.MISSING_ONBOARD,
@@ -57,7 +63,9 @@ def compare_inventory(
             issues.append(
                 IssueRow(
                     ship_id=ship_id,
+                    ship_name=ship_name,
                     item=item_key,
+                    item_description=item_description,
                     onboard_edition=onboard_edition,
                     current_edition=current_edition,
                     issue_type=IssueType.OUTDATED,
@@ -68,7 +76,9 @@ def compare_inventory(
         issues.append(
             IssueRow(
                 ship_id=ship_id,
+                ship_name=ship_name,
                 item=item_key,
+                item_description=item_description,
                 onboard_edition=onboard_edition,
                 current_edition=current_edition,
                 issue_type=IssueType.OK,

@@ -17,6 +17,7 @@ def get_ams_vessels(conn: sqlite3.Connection) -> Iterable[Mapping[str, Any]]:
     query = """
         SELECT
             ship_id,
+            ship_name,
             ams,
             ship_email,
             office_email
@@ -52,6 +53,7 @@ def get_reference_inventory(conn: sqlite3.Connection) -> Iterable[Mapping[str, A
     query = """
         SELECT
             item,
+            description,
             current_edition
         FROM ic_inventory_row
         ORDER BY item
