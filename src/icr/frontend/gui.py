@@ -10,6 +10,8 @@ from typing import Any, Mapping, Sequence
 from icr.frontend import messages
 from icr.frontend.flow import AppFlow, FrontendIO
 
+from icr.utils.logging import get_logger
+logger = get_logger('gui')
 
 def _vessel_id(vessel: Mapping[str, Any]) -> str:
     return str(vessel.get("ship_id", ""))
@@ -128,6 +130,7 @@ class ICRApp:
     """Main GUI application with 4 tabs."""
 
     def __init__(self, root: tk.Tk) -> None:
+        logger.info('Initialize gui')
         self.root = root
         self.root.title(messages.WELCOME["title"])
         self.root.geometry("800x600")
@@ -186,7 +189,7 @@ class ICRApp:
     def _browse_file(self, var: tk.StringVar) -> None:
         path = filedialog.askopenfilename(
             title="Select Excel File",
-            filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")],
+            filetypes=[("Excel files", "*.xlsx *.xls *.XLSX *.XLS"), ("All files", "*.*")],
         )
         if path:
             var.set(path)
@@ -238,6 +241,18 @@ class ICRApp:
         self._notebook.add(tab, text="Review Report")
         self._review_tab = tab
 
+        # Button bar at top
+        self._review_btn_frame = ttk.Frame(tab)
+        self._review_btn_frame.pack(fill="x", pady=(0, 5))
+
+        self._main_report_btn = ttk.Button(
+            self._review_btn_frame,
+            text="Main Report",
+            command=self._show_main_report,
+            state="disabled",
+        )
+        self._main_report_btn.pack(side="left")
+
         self._review_placeholder = ttk.Label(
             tab,
             text="No report available yet. Generate a report first.",
@@ -245,9 +260,19 @@ class ICRApp:
         )
         self._review_placeholder.pack(expand=True)
 
+        self._review_html = None
+        self._summary_html_path = None
+
     def _populate_review_tab(self) -> None:
+        # Destroy content below the button bar
         for widget in self._review_tab.winfo_children():
-            widget.destroy()
+            if widget is not self._review_btn_frame:
+                widget.destroy()
+
+        # Clear old vessel buttons from btn frame (keep Main Report button)
+        for widget in self._review_btn_frame.winfo_children():
+            if widget is not self._main_report_btn:
+                widget.destroy()
 
         if self._summary is None:
             return
@@ -261,63 +286,43 @@ class ICRApp:
             ).pack(expand=True)
             return
 
-        summary_path = self._summary.get("summary_html_path")
-        if summary_path:
-            ttk.Label(
-                self._review_tab, text="Run Summary", font=("", 11, "bold")
-            ).pack(anchor="w", pady=(0, 5))
+        # Enable Main Report button
+        self._main_report_btn.configure(state="normal")
 
-            summary_frame = ttk.Frame(self._review_tab)
-            summary_frame.pack(fill="both", expand=True)
-
-            html_frame = HtmlFrame(summary_frame, messages_enabled=False)
-            html_frame.pack(fill="both", expand=True)
-            html_frame.load_file(str(summary_path))
-
+        # Add vessel buttons to the button bar
         vessels = self._summary.get("vessels", [])
         if vessels:
-            ttk.Separator(self._review_tab, orient="horizontal").pack(
-                fill="x", pady=10
+            ttk.Separator(self._review_btn_frame, orient="vertical").pack(
+                side="left", fill="y", padx=5, pady=2
             )
-            ttk.Label(
-                self._review_tab, text="Vessel Reports", font=("", 11, "bold")
-            ).pack(anchor="w", pady=(0, 5))
-
-            list_frame = ttk.Frame(self._review_tab)
-            list_frame.pack(fill="x")
-
             for v in vessels:
                 ship_id = v.get("ship_id", "")
                 ship_name = v.get("ship_name")
                 label = f"{ship_name} ({ship_id})" if ship_name else ship_id
                 report_path = v.get("report_path", "")
-
                 btn = ttk.Button(
-                    list_frame,
+                    self._review_btn_frame,
                     text=label,
-                    command=lambda p=report_path, lbl=label: self._open_vessel_report(
-                        p, lbl
-                    ),
+                    command=lambda p=report_path: self._show_vessel_report(p),
                 )
-                btn.pack(anchor="w", pady=1)
+                btn.pack(side="left", padx=2)
 
-    def _open_vessel_report(self, report_path: str, title: str) -> None:
-        try:
-            from tkinterweb import HtmlFrame
-        except ImportError:
-            messagebox.showerror(
-                "Missing Dependency",
-                "tkinterweb is required to view reports.",
-            )
-            return
+        # Main HTML frame for report content
+        self._review_html = HtmlFrame(self._review_tab, messages_enabled=False)
+        self._review_html.pack(fill="both", expand=True)
 
-        popup = tk.Toplevel(self.root)
-        popup.title(title)
-        popup.geometry("750x550")
+        # Show summary by default
+        self._summary_html_path = self._summary.get("summary_html_path")
+        if self._summary_html_path:
+            self._review_html.load_file(str(self._summary_html_path))
 
-        html_frame = HtmlFrame(popup, messages_enabled=False)
-        html_frame.pack(fill="both", expand=True)
-        html_frame.load_file(report_path)
+    def _show_main_report(self) -> None:
+        if self._review_html and self._summary_html_path:
+            self._review_html.load_file(str(self._summary_html_path))
+
+    def _show_vessel_report(self, report_path: str) -> None:
+        if self._review_html and report_path:
+            self._review_html.load_file(report_path)
 
     # ── Tab 4: Export ──────────────────────────────────────────────
 
@@ -331,6 +336,7 @@ class ICRApp:
     # ── Button state management ────────────────────────────────────
 
     def _update_button_states(self) -> None:
+        self.log_state()
         config_ready = all([
             self._ic_inventory.get(),
             self._vessels_index.get(),
@@ -346,9 +352,12 @@ class ICRApp:
             "normal" if has_selection and not self._processing else "disabled"
         )
 
+        main_report_state = "normal" if self._summary is not None else "disabled"
+
         self._fetch_btn.configure(state=fetch_state)
         self._select_btn.configure(state=select_state)
         self._process_btn.configure(state=process_state)
+        self._main_report_btn.configure(state=main_report_state)
 
     # ── Actions ────────────────────────────────────────────────────
 
@@ -358,11 +367,16 @@ class ICRApp:
         self._show_progress(True)
         self._io.display("Initializing workflow...")
 
+        # Read StringVar values on the main thread (not thread-safe).
+        ic_inv = self._ic_inventory.get()
+        vi = self._vessels_index.get()
+        vinv = self._vessels_inventory.get()
+
         def work() -> list[Mapping[str, Any]] | None:
             ok = self._flow.initialize(
-                ic_inventory=self._ic_inventory.get(),
-                vessels_index=self._vessels_index.get(),
-                vessels_inventory=self._vessels_inventory.get(),
+                ic_inventory=ic_inv,
+                vessels_index=vi,
+                vessels_inventory=vinv,
             )
             if not ok:
                 return None
@@ -442,6 +456,13 @@ class ICRApp:
         else:
             self._progress.stop()
             self._progress.pack_forget()
+    
+    def log_state(self):
+        logger.info("="*10 + " LOG STATE " + "="*10)
+        logger.info(f"ic_inventory: {self._ic_inventory.get()}")
+        logger.info(f"vessel_index: {self._vessels_index.get()}")
+        logger.info(f"vessels_inventory: {self._vessels_inventory.get()}")
+
 
 
 def run_gui() -> None:
