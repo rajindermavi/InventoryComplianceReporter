@@ -209,7 +209,7 @@ class WorkflowState:
             "source_files": self._get_source_filenames(),
             "vessels": vessels_processed,
             "errors": [],
-            "summary_html_path":summary_html_path
+            "summary_html_path": str(summary_html_path)
         }
         
         summary_json_path = self.paths.run_dir / "summary.json"
@@ -289,17 +289,28 @@ def initialize_workflow(
     vessels_index: Path | str,
     vessels_inventory: Path | str,
     run_id: str | None = None,
-    db_path: Path = None
+    db_path: Path | None = None,
 ) -> None:
     """Initialize a new workflow with input files."""
     global _current_workflow
-    
+
+    from icr.backend.persistence.paths import _generate_run_id, get_run_dir
+
+    if run_id is None:
+        run_id = _generate_run_id()
+
+    if db_path is None:
+        run_dir = get_run_dir(run_id)
+        data_dir = run_dir / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        db_path = data_dir / "run.db"
+
     paths = WorkflowPaths(
         ic_inventory=Path(ic_inventory),
         vessels_index=Path(vessels_index),
         vessels_inventory=Path(vessels_inventory),
     )
-    
+
     _current_workflow = WorkflowState(run_id, db_path, paths)
 
 
