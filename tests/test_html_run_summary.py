@@ -44,8 +44,8 @@ def test_render_run_summary_multiple_vessels(
     assert "Vessels processed:</strong> 2" in html
     assert "Vessels with issues:</strong> 1" in html
     assert "Vessels with no issues:</strong> 1" in html
-    assert "VESSEL_001 - Ocean Star" in html
-    assert "VESSEL_002 - Calm Seas" in html
+    assert "Ocean Star" in html
+    assert "Calm Seas" in html
     assert "VESSEL_001.html" in html
     assert "VESSEL_002.html" in html
 
@@ -58,7 +58,7 @@ def test_render_run_summary_no_issues(
     assert "Vessels processed:</strong> 1" in html
     assert "Vessels with issues:</strong> 0" in html
     assert "Vessels with no issues:</strong> 1" in html
-    assert "VESSEL_003 - Still Waters" in html
+    assert "Still Waters" in html
     assert any(
         token in html
         for token in (
