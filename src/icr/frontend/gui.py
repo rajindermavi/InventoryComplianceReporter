@@ -139,11 +139,13 @@ class ICRApp:
         self._ic_inventory = tk.StringVar()
         self._vessels_index = tk.StringVar()
         self._vessels_inventory = tk.StringVar()
+        self._export_folder = tk.StringVar()
 
         self._vessels: list[Mapping[str, Any]] = []
         self._selected_ids: set[str] = set()
         self._summary: Mapping[str, Any] | None = None
         self._processing = False
+        self._runs_cache: list[Mapping[str, Any]] = []
 
         self._notebook = ttk.Notebook(self.root)
         self._notebook.pack(fill="both", expand=True, padx=5, pady=5)
@@ -329,8 +331,194 @@ class ICRApp:
     def _build_export_tab(self) -> None:
         tab = ttk.Frame(self._notebook, padding=15)
         self._notebook.add(tab, text="Export")
-        ttk.Label(tab, text="Export functionality coming soon.", font=("", 11)).pack(
-            expand=True
+        self._export_tab = tab
+
+        # Export folder row
+        folder_frame = ttk.Frame(tab)
+        folder_frame.pack(fill="x", pady=(0, 10))
+
+        ttk.Label(folder_frame, text="Export Folder:").pack(side="left")
+        entry = ttk.Entry(
+            folder_frame, textvariable=self._export_folder, state="readonly", width=50
+        )
+        entry.pack(side="left", fill="x", expand=True, padx=5)
+        ttk.Button(
+            folder_frame, text="Browse", command=self._browse_export_folder
+        ).pack(side="left")
+
+        # Action buttons
+        btn_frame = ttk.Frame(tab)
+        btn_frame.pack(fill="x", pady=(0, 10))
+
+        self._export_selected_btn = ttk.Button(
+            btn_frame, text="Export Selected", command=self._on_export_selected
+        )
+        self._export_selected_btn.pack(side="left", padx=5)
+
+        self._export_current_btn = ttk.Button(
+            btn_frame, text="Export Current", command=self._on_export_current
+        )
+        self._export_current_btn.pack(side="left", padx=5)
+
+        self._purge_selected_btn = ttk.Button(
+            btn_frame, text="Purge Selected", command=self._on_purge_selected
+        )
+        self._purge_selected_btn.pack(side="left", padx=5)
+
+        self._purge_all_btn = ttk.Button(
+            btn_frame, text="Purge All", command=self._on_purge_all
+        )
+        self._purge_all_btn.pack(side="left", padx=5)
+
+        # Past runs treeview
+        runs_frame = ttk.LabelFrame(tab, text="Past Runs", padding=5)
+        runs_frame.pack(fill="both", expand=True)
+
+        columns = ("run_id", "timestamp", "vessels", "issues")
+        self._runs_tree = ttk.Treeview(
+            runs_frame, columns=columns, show="headings", selectmode="browse"
+        )
+        self._runs_tree.heading("run_id", text="Run ID")
+        self._runs_tree.heading("timestamp", text="Timestamp")
+        self._runs_tree.heading("vessels", text="Vessels")
+        self._runs_tree.heading("issues", text="Issues")
+
+        self._runs_tree.column("run_id", width=220)
+        self._runs_tree.column("timestamp", width=180)
+        self._runs_tree.column("vessels", width=70, anchor="center")
+        self._runs_tree.column("issues", width=70, anchor="center")
+
+        tree_scroll = ttk.Scrollbar(
+            runs_frame, orient="vertical", command=self._runs_tree.yview
+        )
+        self._runs_tree.configure(yscrollcommand=tree_scroll.set)
+        self._runs_tree.pack(side="left", fill="both", expand=True)
+        tree_scroll.pack(side="right", fill="y")
+
+        self._runs_tree.bind("<<TreeviewSelect>>", lambda _: self._update_export_button_states())
+
+        # Auto-refresh when switching to the Export tab
+        self._notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+
+    # ── Export helpers ─────────────────────────────────────────────
+
+    def _browse_export_folder(self) -> None:
+        path = filedialog.askdirectory(title="Select Export Folder")
+        if path:
+            self._export_folder.set(path)
+            self._update_export_button_states()
+
+    def _on_tab_changed(self, event: Any) -> None:
+        selected = self._notebook.index(self._notebook.select())
+        if selected == 3:  # Export tab
+            self._refresh_runs_list()
+
+    def _refresh_runs_list(self) -> None:
+        for item in self._runs_tree.get_children():
+            self._runs_tree.delete(item)
+
+        try:
+            self._runs_cache = self._flow.list_runs()
+        except Exception:
+            self._runs_cache = []
+
+        for run in self._runs_cache:
+            self._runs_tree.insert("", "end", values=(
+                run.get("run_id", ""),
+                run.get("timestamp", ""),
+                run.get("vessels_processed", ""),
+                run.get("total_issue_rows", ""),
+            ))
+        self._update_export_button_states()
+
+    def _get_selected_run_id(self) -> str | None:
+        selection = self._runs_tree.selection()
+        if not selection:
+            return None
+        values = self._runs_tree.item(selection[0], "values")
+        return values[0] if values else None
+
+    def _on_export_selected(self) -> None:
+        folder = self._export_folder.get()
+        run_id = self._get_selected_run_id()
+        if not folder or not run_id:
+            return
+
+        def work() -> bool:
+            self._flow.export_run(run_id, folder)
+            return True
+
+        def done(result: Any) -> None:
+            if result:
+                self._io.display(messages.EXPORT["export_success"])
+
+        self._run_in_thread(work, done)
+
+    def _on_export_current(self) -> None:
+        folder = self._export_folder.get()
+        if not folder:
+            return
+
+        def work() -> bool:
+            self._flow.export_current_run(folder)
+            return True
+
+        def done(result: Any) -> None:
+            if result:
+                self._io.display(messages.EXPORT["export_success"])
+
+        self._run_in_thread(work, done)
+
+    def _on_purge_selected(self) -> None:
+        run_id = self._get_selected_run_id()
+        if not run_id:
+            return
+        if not messagebox.askyesno("Confirm", messages.EXPORT["confirm_purge_selected"]):
+            return
+
+        def work() -> bool:
+            self._flow.purge_run(run_id)
+            return True
+
+        def done(result: Any) -> None:
+            if result:
+                self._io.display(messages.EXPORT["purge_success"])
+            self.root.after(0, self._refresh_runs_list)
+
+        self._run_in_thread(work, done)
+
+    def _on_purge_all(self) -> None:
+        if not messagebox.askyesno("Confirm", messages.EXPORT["confirm_purge_all"]):
+            return
+
+        def work() -> bool:
+            self._flow.purge_all_runs()
+            return True
+
+        def done(result: Any) -> None:
+            if result:
+                self._io.display(messages.EXPORT["purge_all_success"])
+            self.root.after(0, self._refresh_runs_list)
+
+        self._run_in_thread(work, done)
+
+    def _update_export_button_states(self) -> None:
+        has_folder = bool(self._export_folder.get())
+        has_selection = self._get_selected_run_id() is not None
+        has_current = self._summary is not None
+        has_runs = len(self._runs_tree.get_children()) > 0
+
+        self._export_selected_btn.configure(
+            state="normal" if has_folder and has_selection else "disabled"
+        )
+        self._export_current_btn.configure(
+            state="normal" if has_folder and has_current else "disabled"
+        )
+        self._purge_selected_btn.configure(
+            state="normal" if has_selection else "disabled"
+        )
+        self._purge_all_btn.configure(
+            state="normal" if has_runs else "disabled"
         )
 
     # ── Button state management ────────────────────────────────────
@@ -358,6 +546,7 @@ class ICRApp:
         self._select_btn.configure(state=select_state)
         self._process_btn.configure(state=process_state)
         self._main_report_btn.configure(state=main_report_state)
+        self._update_export_button_states()
 
     # ── Actions ────────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -331,3 +332,78 @@ def process_vessels(vessel_ids: Sequence[str]) -> Mapping[str, Any]:
     if _current_workflow is None:
         raise RuntimeError("Workflow not initialized")
     return _current_workflow.process_vessels(vessel_ids)
+
+
+def list_runs() -> list[Mapping[str, Any]]:
+    """List all past runs with metadata from summary.json.
+
+    Returns a list sorted by directory mtime (newest first).
+    """
+    from icr.backend.persistence.paths import get_runs_base_dir
+
+    runs_base = get_runs_base_dir()
+    results: list[dict[str, Any]] = []
+
+    for entry in runs_base.iterdir():
+        if not entry.is_dir():
+            continue
+        run_info: dict[str, Any] = {"run_id": entry.name}
+        summary_file = entry / "summary.json"
+        if summary_file.exists():
+            try:
+                data = json.loads(summary_file.read_text(encoding="utf-8"))
+                run_info["timestamp"] = data.get("timestamp", "")
+                run_info["vessels_processed"] = data.get("vessels_processed", 0)
+                run_info["total_issue_rows"] = data.get("total_issue_rows", 0)
+            except (json.JSONDecodeError, OSError):
+                pass
+        results.append(run_info)
+
+    results.sort(key=lambda r: (runs_base / r["run_id"]).stat().st_mtime, reverse=True)
+    return results
+
+
+def export_run(run_id: str, export_folder: str | Path) -> None:
+    """Export all reports from a specific run to export_folder/run_id/."""
+    from icr.backend.persistence.paths import get_runs_base_dir
+
+    src = get_runs_base_dir() / run_id
+    if not src.is_dir():
+        raise FileNotFoundError(f"Run directory not found: {run_id}")
+
+    dest = Path(export_folder) / run_id
+    shutil.copytree(src, dest, dirs_exist_ok=True)
+    logger.info(f"Exported run {run_id} to {dest}")
+
+
+def export_current_run(export_folder: str | Path) -> None:
+    """Export all reports from the current run."""
+    if _current_workflow is None:
+        raise RuntimeError("No current workflow to export")
+    export_run(_current_workflow.paths.run_id, export_folder)
+
+
+def purge_run(run_id: str) -> None:
+    """Delete all files for a specific run."""
+    from icr.backend.persistence.paths import get_runs_base_dir
+
+    target = get_runs_base_dir() / run_id
+    if not target.is_dir():
+        raise FileNotFoundError(f"Run directory not found: {run_id}")
+
+    shutil.rmtree(target)
+    logger.info(f"Purged run {run_id}")
+
+
+def purge_all_runs() -> None:
+    """Delete all run artifacts."""
+    from icr.backend.persistence.paths import get_runs_base_dir
+
+    runs_base = get_runs_base_dir()
+    for entry in runs_base.iterdir():
+        if entry.is_dir():
+            try:
+                shutil.rmtree(entry)
+            except OSError:
+                logger.warning(f"Failed to purge {entry.name}")
+    logger.info("Purged all runs")

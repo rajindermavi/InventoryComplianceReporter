@@ -48,6 +48,16 @@ COMPLETION = {
     "total_issue_rows": "Total issue rows: {total_issue_rows}",
 }
 
+EXPORT = {
+    "confirm_purge_selected": "Delete all reports for the selected run? This cannot be undone.",
+    "confirm_purge_all": "Delete ALL past run reports? This cannot be undone.",
+    "export_success": "Run exported successfully.",
+    "purge_success": "Run purged successfully.",
+    "purge_all_success": "All runs purged successfully.",
+    "no_folder": "Please select an export folder first.",
+    "no_run_selected": "Please select a run from the list.",
+}
+
 ERRORS = {
     "initialization_failure":{
         "title": "Initialization Fail.",

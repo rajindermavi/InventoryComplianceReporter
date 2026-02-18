@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import Any, Protocol, TypeVar
 
 import icr.backend
@@ -113,6 +114,26 @@ class AppFlow:
             self._io.display(messages.COMPLETION["success"])
             _display_summary(self._io, summary)
         return summary
+
+    def list_runs(self) -> list[Mapping[str, Any]]:
+        """List all past runs."""
+        return self._backend.list_runs()
+
+    def export_run(self, run_id: str, export_folder: str | Path) -> None:
+        """Export a specific run to the given folder."""
+        self._backend.export_run(run_id, export_folder)
+
+    def export_current_run(self, export_folder: str | Path) -> None:
+        """Export the current run to the given folder."""
+        self._backend.export_current_run(export_folder)
+
+    def purge_run(self, run_id: str) -> None:
+        """Purge a specific run."""
+        self._backend.purge_run(run_id)
+
+    def purge_all_runs(self) -> None:
+        """Purge all past runs."""
+        self._backend.purge_all_runs()
 
     def run(self) -> None:
         """Run the complete linear workflow.

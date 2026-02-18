@@ -83,7 +83,20 @@ Design
     - show ship_name (ship_id) on each line
     - clicking creates a popup with <ship_id>_report.html
 - Tab 4: Export
-  - placeholder
+  - Buttons
+    - `Export Selected`
+    - `Export Current`
+    - `Purge Selected`
+    - `Purge All`
+  - input field for export folder path
+    - folder picker / browser to find folder
+  - Window showing all past runs allowing user to select a single report
+  - Clicking `Export Selected` exports all reports for selected run
+    - Only clickable once a folder is selected
+  - Clicking `Export Current` exports all report from current run
+    - Only clickable once a folder is selected
+  - Clicking `Purge Selected` deletes all reports from selected run 
+  - Clicking `Purge All` deletes all reports from all past runs 
 
 
 Responsibilities
