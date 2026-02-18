@@ -10,7 +10,7 @@ import sys
 from icr.frontend.gui import run_gui
 
 
-def main() -> None:
+def app_main() -> None:
     """Run the GUI application."""
     try:
         run_gui()
@@ -20,4 +20,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    app_main()

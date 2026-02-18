@@ -20,8 +20,9 @@ from icr.backend.persistence.paths import (
     get_run_dir,
     get_runs_base_dir,
 )
-
+from icr.app import app_main
 __all__ = [
+    "app_main"
     "Database",
     "IngestionFatalError",
     "IngestionStats",

@@ -1,6 +1,4 @@
-def main():
-    print("Hello from inventorycompliancereporter!")
-
+from src.icr import app_main
 
 if __name__ == "__main__":
-    main()
+    app_main()
