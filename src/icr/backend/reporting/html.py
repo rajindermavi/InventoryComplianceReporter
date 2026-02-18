@@ -43,7 +43,7 @@ def render_vessel_report(
         "</head>",
         "<body>",
         "<h1>Inventory Compliance Report</h1>",
-        f'<p class="meta"><strong>Vessel:</strong> {escape(vessel_label)}</p>',
+        f'<h2>Vessel: {escape(vessel_label)}</h2>',
         f'<p class="meta"><strong>Run timestamp:</strong> {escape(run_timestamp)}</p>',
         "<h2>Inventory Audit</h2>",
     ]
@@ -175,7 +175,8 @@ def _render_vessel_summary_table(vessels: Sequence[Mapping[str, Any]]) -> str:
 
 def _format_vessel_label(ship_id: str, ship_name: str | None) -> str:
     if ship_name:
-        return f"{ship_id} - {ship_name}"
+        #return f"{ship_id} - {ship_name}"
+        return ship_name
     return ship_id
 
 
