@@ -41,16 +41,12 @@ def test_render_vessel_report_with_issues(
         vessel_with_discrepancies,
         issues,
         run_timestamp="2024-05-01 10:30",
-        source_files=["index.xlsx", "inventory.xlsx", "ic.xlsx"],
     )
 
     assert "<!doctype html>" in html
     assert "<h1>Inventory Compliance Report</h1>" in html
     assert "VESSEL_001 - Ocean Star" in html
     assert "2024-05-01 10:30" in html
-    assert "index.xlsx" in html
-    assert "inventory.xlsx" in html
-    assert "ic.xlsx" in html
     assert "<table>" in html
     assert "<th>Item</th>" in html
     assert "PUB-100" in html
@@ -68,12 +64,10 @@ def test_render_vessel_report_no_issues(
         vessel_without_discrepancies,
         [],
         run_timestamp="2024-05-02 09:15",
-        source_files=["index.xlsx"],
     )
 
     assert "VESSEL_002 - Calm Seas" in html
     assert "2024-05-02 09:15" in html
-    assert "index.xlsx" in html
     assert "No issues found for this vessel." in html
     assert "<table>" not in html
 
@@ -85,13 +79,11 @@ def test_render_vessel_report_is_deterministic(
         vessel_with_discrepancies,
         issues,
         run_timestamp="2024-05-01 10:30",
-        source_files=["index.xlsx", "inventory.xlsx", "ic.xlsx"],
     )
     html_second = render_vessel_report(
         vessel_with_discrepancies,
         issues,
         run_timestamp="2024-05-01 10:30",
-        source_files=["index.xlsx", "inventory.xlsx", "ic.xlsx"],
     )
 
     assert html_first == html_second

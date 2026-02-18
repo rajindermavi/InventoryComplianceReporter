@@ -36,7 +36,7 @@ def run_with_no_issues() -> list[dict[str, object]]:
 def test_render_run_summary_multiple_vessels(
     run_with_multiple_vessels: list[dict[str, object]],
 ) -> None:
-    html = render_run_summary(run_with_multiple_vessels, run_timestamp="2024-05-03 14:00")
+    html = render_run_summary(run_with_multiple_vessels, run_timestamp="2024-05-03 14:00", source_files=["index.xlsx", "inventory.xlsx"])
 
     assert "<!doctype html>" in html
     assert "<h1>Run Summary</h1>" in html
@@ -53,7 +53,7 @@ def test_render_run_summary_multiple_vessels(
 def test_render_run_summary_no_issues(
     run_with_no_issues: list[dict[str, object]],
 ) -> None:
-    html = render_run_summary(run_with_no_issues, run_timestamp="2024-05-04 08:10")
+    html = render_run_summary(run_with_no_issues, run_timestamp="2024-05-04 08:10", source_files=["index.xlsx"])
 
     assert "Vessels processed:</strong> 1" in html
     assert "Vessels with issues:</strong> 0" in html
@@ -69,7 +69,7 @@ def test_render_run_summary_no_issues(
 
 
 def test_render_run_summary_no_vessels() -> None:
-    html = render_run_summary([], run_timestamp="2024-05-05 07:00")
+    html = render_run_summary([], run_timestamp="2024-05-05 07:00", source_files=[])
 
     assert "Vessels processed:</strong> 0" in html
     assert "No vessels processed." in html
@@ -78,7 +78,7 @@ def test_render_run_summary_no_vessels() -> None:
 def test_render_run_summary_is_deterministic(
     run_with_multiple_vessels: list[dict[str, object]],
 ) -> None:
-    first = render_run_summary(run_with_multiple_vessels, run_timestamp="2024-05-03 14:00")
-    second = render_run_summary(run_with_multiple_vessels, run_timestamp="2024-05-03 14:00")
+    first = render_run_summary(run_with_multiple_vessels, run_timestamp="2024-05-03 14:00", source_files=["index.xlsx"])
+    second = render_run_summary(run_with_multiple_vessels, run_timestamp="2024-05-03 14:00", source_files=["index.xlsx"])
 
     assert first == second

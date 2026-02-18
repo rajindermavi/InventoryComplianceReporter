@@ -165,7 +165,6 @@ class WorkflowState:
                 vessel=vessel,
                 issues=problem_issues,
                 run_timestamp=self._get_timestamp(),
-                source_files=self._get_source_filenames(),
             )
             
             # Write report to file
@@ -191,6 +190,7 @@ class WorkflowState:
         run_summary_html = render_run_summary(
             vessels=vessels_processed,
             run_timestamp=self._get_timestamp(),
+            source_files=self._get_source_filenames(),
         )
         summary_html_path = self.paths.run_dir / "run_summary.html"
         summary_html_path.write_text(run_summary_html, encoding="utf-8")

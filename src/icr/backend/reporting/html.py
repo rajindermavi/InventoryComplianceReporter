@@ -18,7 +18,6 @@ def render_vessel_report(
     issues: Sequence[Any],
     *,
     run_timestamp: str,
-    source_files: Sequence[str],
 ) -> str:
     """Render a per-vessel compliance report as HTML."""
     ship_id = _coerce_text(vessel.get("ship_id")) or "UNKNOWN"
@@ -45,8 +44,6 @@ def render_vessel_report(
         "<h1>Inventory Compliance Report</h1>",
         f'<p class="meta"><strong>Vessel:</strong> {escape(vessel_label)}</p>',
         f'<p class="meta"><strong>Run timestamp:</strong> {escape(run_timestamp)}</p>',
-        "<h2>Source Files</h2>",
-        _render_source_files(source_files),
         "<h2>Discrepancies</h2>",
     ]
 
@@ -63,6 +60,7 @@ def render_run_summary(
     vessels: Sequence[Mapping[str, Any]],
     *,
     run_timestamp: str,
+    source_files: Sequence[str],
 ) -> str:
     """Render a run-level summary report as HTML."""
     total = len(vessels)
@@ -90,6 +88,8 @@ def render_run_summary(
         f'<p class="meta"><strong>Vessels processed:</strong> {total}</p>',
         f'<p class="meta"><strong>Vessels with issues:</strong> {with_issues}</p>',
         f'<p class="meta"><strong>Vessels with no issues:</strong> {without_issues}</p>',
+        "<h2>Source Files</h2>",
+        _render_source_files(source_files),
         "<h2>Vessels</h2>",
     ]
 
