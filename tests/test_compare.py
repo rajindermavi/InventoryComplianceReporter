@@ -5,6 +5,7 @@ from icr.backend.domain.models import IssueType
 def test_compare_inventory_returns_ok_for_matching_editions() -> None:
     result = compare_inventory(
         ship_id="S1",
+        ship_name="ship",
         onboard_items=[{"item": "Chart A", "onboard_edition": "2025"}],
         reference_items=[{"item": "Chart A", "current_edition": "2025"}],
     )
@@ -20,6 +21,7 @@ def test_compare_inventory_returns_ok_for_matching_editions() -> None:
 def test_compare_inventory_returns_outdated_when_editions_differ() -> None:
     result = compare_inventory(
         ship_id="S1",
+        ship_name="ship",
         onboard_items=[{"item": "Chart A", "onboard_edition": "2024"}],
         reference_items=[{"item": "Chart A", "current_edition": "2025"}],
     )
@@ -30,6 +32,7 @@ def test_compare_inventory_returns_outdated_when_editions_differ() -> None:
 def test_compare_inventory_returns_missing_reference_for_onboard_only_item() -> None:
     result = compare_inventory(
         ship_id="S1",
+        ship_name="ship",
         onboard_items=[{"item": "Chart A", "edition": "2025"}],
         reference_items=[],
     )
@@ -41,6 +44,7 @@ def test_compare_inventory_returns_missing_reference_for_onboard_only_item() -> 
 def test_compare_inventory_returns_missing_onboard_when_onboard_edition_empty() -> None:
     result = compare_inventory(
         ship_id="S1",
+        ship_name="ship",
         onboard_items=[{"item": "Chart A", "onboard_edition": ""}],
         reference_items=[{"item": "Chart A", "current_edition": "2025"}],
     )
@@ -55,7 +59,7 @@ def test_compare_inventory_deduplicates_identical_ok_rows_by_default() -> None:
     ]
     reference = [{"item": "Chart A", "current_edition": "2025"}]
 
-    result = compare_inventory("S1", onboard, reference)
+    result = compare_inventory("S1","ship",  onboard, reference)
 
     assert len(result) == 2
     assert result[0].issue_type is IssueType.OK
@@ -68,7 +72,7 @@ def test_compare_inventory_can_disable_deduplication() -> None:
     ]
     reference = [{"item": "Chart A", "current_edition": "2025"}]
 
-    result = compare_inventory("S1", onboard, reference, deduplicate=False)
+    result = compare_inventory("S1","ship", onboard, reference, deduplicate=False)
 
     assert len(result) == 2
     assert all(row.issue_type is IssueType.OK for row in result)

@@ -32,20 +32,6 @@ def _write_workbook(path: Path, headers: list[str], rows: list[list[object]]) ->
     workbook.close()
 
 
-def _create_ic_table(db: Database) -> None:
-    with db.connect() as conn:
-        conn.execute(
-            """
-            CREATE TABLE ic_inventory_row (
-                item TEXT,
-                current_edition TEXT,
-                description TEXT,
-                current_date TEXT
-            );
-            """
-        )
-
-
 def test_phase2_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Exercise runtime paths, database lifecycle, and single-file ingestion."""
 
@@ -70,8 +56,6 @@ def test_phase2_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
             input_fingerprint="abc123",
         )
     )
-    _create_ic_table(db)
-
     # 3) Ingest one valid Excel file.
     ic_path = tmp_path / "SAFE_IC_INVENTORY.xlsx"
     _write_workbook(
