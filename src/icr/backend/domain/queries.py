@@ -38,7 +38,8 @@ def get_onboard_inventory(
         SELECT
             ship_id,
             item,
-            onboard_edition
+            onboard_edition,
+            description
         FROM vessel_inventory_row
         WHERE ship_id = ?
         ORDER BY item

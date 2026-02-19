@@ -29,6 +29,7 @@ def compare_inventory(
         current_edition = None if reference_record is None else reference_record.get("current_edition")
         onboard_edition = record.get("onboard_edition") 
         item_description = None if reference_record is None else reference_record.get('description')
+        item_description = record.get('description') if item_description is None else item_description
 
         if reference_record is None:
             issues.append(
