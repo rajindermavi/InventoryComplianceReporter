@@ -158,11 +158,11 @@ class WorkflowState:
             # Filter out OK issues for reporting (only show problems)
             problem_issues = [
                 issue for issue in issues 
-                if issue.issue_type.value != "OK"
+                if (issue.issue_type.value == "OUTDATED" or issue.issue_type.value == "MISSING_ONBOARD")
             ]
             ok_issues = [
                 issue for issue in issues 
-                if issue.issue_type.value == "OK"
+                if not (issue.issue_type.value == "OUTDATED" or issue.issue_type.value == "MISSING_ONBOARD")
             ]
             
             # Generate HTML report

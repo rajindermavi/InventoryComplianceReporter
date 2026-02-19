@@ -54,7 +54,7 @@ def render_vessel_report(
     else:
         lines.append('<p class="ok">No discrepancies found for this vessel.</p>')
     if ok_issues:
-        lines.append("<h3>Matches</h3>")
+        lines.append("<h3>Other</h3>")
         lines.append(_render_issue_table(ok_issues))
 
     lines.extend(["</body>", "</html>"])
@@ -191,6 +191,8 @@ def _format_issue_type(value: Any) -> str:
     if isinstance(value, IssueType):
         value = value.value
     text = _coerce_text(value).upper()
+    if text == "OK":
+        return "OK"
     if text == "OUTDATED":
         return "Outdated"
     if text == "MISSING_ONBOARD":
