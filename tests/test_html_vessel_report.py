@@ -84,7 +84,7 @@ def test_render_vessel_report_with_issues(
     assert "Outdated" in html
     assert "Missing onboard edition" in html
     assert "<h3>Discrepancies</h3>" in html
-    assert "<h3>Matches</h3>" in html
+    assert "<h3>Other</h3>" in html
     assert "PUB-101" in html
     assert "PUB-201" in html
     assert "No discrepancies found for this vessel." not in html
