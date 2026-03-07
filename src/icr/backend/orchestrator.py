@@ -174,7 +174,8 @@ class WorkflowState:
             )
             
             # Write report to file
-            report_filename = f"{vessel_id}_report.html"
+            # name file as {customer_no} {vessel_name} {imono} report.html
+            report_filename = f"{vessel.get('customer_no', 'unknown')} {vessel.get('ship_name', 'unknown')} {vessel.get('imo_no', 'unknown')} report.html"
             report_path = self.paths.run_dir / report_filename
             report_path.write_text(html_content, encoding="utf-8")
             

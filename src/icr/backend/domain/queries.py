@@ -18,6 +18,8 @@ def get_ams_vessels(conn: sqlite3.Connection) -> Iterable[Mapping[str, Any]]:
         SELECT
             ship_id,
             ship_name,
+            customer_no,
+            imo_no,
             ams,
             ship_email,
             office_email
