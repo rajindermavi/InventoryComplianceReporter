@@ -94,12 +94,11 @@ def render_run_summary(
         f'<p class="meta"><strong>Vessels with issues:</strong> {with_issues}</p>',
         f'<p class="meta"><strong>Vessels with no issues:</strong> {without_issues}</p>',
         "<h2>Source Files</h2>",
-        _render_source_files(source_files),
-        "<h2>Vessels</h2>",
+        _render_source_files(source_files)
     ]
 
     if vessels:
-        lines.append(_render_vessel_summary_table(vessels))
+        lines.extend(_render_vessel_summary_table(vessels))
     else:
         lines.append("<p>No vessels processed.</p>")
 
@@ -145,23 +144,35 @@ def _render_issue_table(issues: Sequence[Any]) -> str:
 
 
 def _render_vessel_summary_table(vessels: Sequence[Mapping[str, Any]]) -> str:
-    rows = []
-    for vessel in vessels:
-        ship_id = _coerce_text(vessel.get("ship_id")) or "UNKNOWN"
-        ship_name = _coerce_text(vessel.get("ship_name"))
-        label = _format_vessel_label(ship_id, ship_name)
-        issue_count = _coerce_int(vessel.get("issue_count"))
-        report_name = _coerce_text(vessel.get("report_filename"))
-        report_cell = escape(report_name)
+    vessels_with_issues = []
+    vessels_without_issues = []
+
+    def row_constructor(label: str, issue_count: int, report_name: str | None) -> str:
+        report_cell = escape(report_name) if report_name else "N/A"
         if report_name:
             report_cell = f'<a href="{escape(report_name)}">{escape(report_name)}</a>'
-        rows.append(
+        return (
             "<tr>"
             f"<td>{escape(label)}</td>"
             f"<td>{issue_count}</td>"
             f"<td>{report_cell}</td>"
             "</tr>"
         )
+
+    for vessel in vessels:
+        ship_id = _coerce_text(vessel.get("ship_id")) or "UNKNOWN"
+        ship_name = _coerce_text(vessel.get("ship_name"))
+        label = _format_vessel_label(ship_id, ship_name)
+        issue_count = _coerce_int(vessel.get("issue_count"))
+        report_name = _coerce_text(vessel.get("report_filename"))
+        #report_cell = escape(report_name)
+        #if report_name:
+        #    report_cell = f'<a href="{escape(report_name)}">{escape(report_name)}</a>'
+        report_row = row_constructor(label, issue_count, report_name)
+        if issue_count > 0:
+            vessels_with_issues.append(report_row)
+        else:
+            vessels_without_issues.append(report_row)
 
     header = (
         "<tr>"
@@ -170,7 +181,18 @@ def _render_vessel_summary_table(vessels: Sequence[Mapping[str, Any]]) -> str:
         "<th>Report File</th>"
         "</tr>"
     )
-    return f"<table>\n{header}\n" + "\n".join(rows) + "\n</table>"
+    report_lines = []
+    if vessels_with_issues:
+        report_lines.append("<h2>Vessels with Issues</h2>")
+        report_lines.append(f"<table>\n{header}\n" + "\n".join(vessels_with_issues) + "\n</table>")
+    else:
+        report_lines.append("<h2>Vessels with Issues</h2>")
+        report_lines.append('<p class="ok">No vessels with issues.</p>')
+    if vessels_without_issues:
+        report_lines.append("<h2>Vessels without Issues</h2>")
+        report_lines.append(f"<table>\n{header}\n" + "\n".join(vessels_without_issues) + "\n</table>")
+
+    return report_lines
 
 
 def _format_vessel_label(ship_id: str, ship_name: str | None) -> str:

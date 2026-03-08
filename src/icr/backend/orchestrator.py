@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -24,7 +23,8 @@ from icr.backend import (
 )
 from icr.backend.config import get_config
 
-logger = logging.getLogger(__name__)
+from icr.utils.logging import get_logger
+logger = get_logger('orchestrator')
 
 
 @dataclass(frozen=True)
@@ -138,6 +138,7 @@ class WorkflowState:
         vessels_processed = []
         total_issues = 0
         for vessel_id in vessel_ids:
+            logger.info(f"[{self.paths.run_id}] Processing vessel {vessel_id}...")
             vessel = self._get_vessel_by_id(vessel_id)
             if not vessel:
                 logger.warning(f"Vessel {vessel_id} not found, skipping")
@@ -192,7 +193,8 @@ class WorkflowState:
                 f"[{self.paths.run_id}] Processed {vessel_id}: "
                 f"{len(problem_issues)} issues"
             )
-            
+        logger.info(f"[{self.paths.run_id}] Completed processing {len(vessels_processed)} vessels with total {total_issues} issues")
+        logger.info(vessels_processed)
         # Generate run summary HTML
         run_summary_html = render_run_summary(
             vessels=vessels_processed,
@@ -355,6 +357,7 @@ def list_runs() -> list[Mapping[str, Any]]:
                 data = json.loads(summary_file.read_text(encoding="utf-8"))
                 run_info["timestamp"] = data.get("timestamp", "")
                 run_info["vessels_processed"] = data.get("vessels_processed", 0)
+                run_info["ams_vessels_found"] = data.get("ams_vessels_found", 0)
                 run_info["total_issue_rows"] = data.get("total_issue_rows", 0)
             except (json.JSONDecodeError, OSError):
                 pass

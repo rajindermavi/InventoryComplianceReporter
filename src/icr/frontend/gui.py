@@ -380,7 +380,7 @@ class ICRApp:
         )
         self._runs_tree.heading("run_id", text="Run ID")
         self._runs_tree.heading("timestamp", text="Timestamp")
-        self._runs_tree.heading("vessels", text="Vessels")
+        self._runs_tree.heading("vessels", text="AMS Vessels")
         self._runs_tree.heading("issues", text="Issues")
 
         self._runs_tree.column("run_id", width=220)
@@ -426,7 +426,8 @@ class ICRApp:
             self._runs_tree.insert("", "end", values=(
                 run.get("run_id", ""),
                 run.get("timestamp", ""),
-                run.get("vessels_processed", ""),
+                #run.get("vessels_processed", ""),
+                run.get("ams_vessels_found", ""),
                 run.get("total_issue_rows", ""),
             ))
         self._update_export_button_states()
