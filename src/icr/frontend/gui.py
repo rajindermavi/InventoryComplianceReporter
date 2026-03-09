@@ -16,6 +16,8 @@ logger = get_logger('gui')
 def _vessel_id(vessel: Mapping[str, Any]) -> str:
     return str(vessel.get("ship_id", ""))
 
+def _vessel_customer_no(vessel: Mapping[str, Any]) -> str:
+    return str(vessel.get("customer_no", ""))
 
 def _vessel_label(vessel: Mapping[str, Any]) -> str:
     ship_id = vessel.get("ship_id", "")
@@ -98,12 +100,29 @@ class VesselSelectionDialog(tk.Toplevel):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        normalized_vessels = {}
         for vessel in self._vessels:
             vid = _vessel_id(vessel)
             label = _vessel_label(vessel)
+            customer_no = _vessel_customer_no(vessel)  # Access customer_no to ensure it's loaded
+            normalized_vessels[vid] = {
+                "id": vid,
+                "label": label, 
+                "customer_no": customer_no
+            }
+
+        normalized_vessels = sorted(
+            normalized_vessels.items(), 
+            key=lambda item: (item[1]['customer_no'], item[1]['label'])
+        )
+
+        for vid, vessel_data in normalized_vessels:
+            label = vessel_data['label']
+            customer_no = vessel_data['customer_no']
+
             var = tk.BooleanVar(value=vid in self.selected_ids)
             self._vars[vid] = var
-            ttk.Checkbutton(self._inner, text=label, variable=var).pack(
+            ttk.Checkbutton(self._inner, text=f"{customer_no} - {label}", variable=var).pack(
                 anchor="w", padx=5, pady=1
             )
 
