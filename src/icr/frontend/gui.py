@@ -20,12 +20,7 @@ def _vessel_customer_no(vessel: Mapping[str, Any]) -> str:
     return str(vessel.get("customer_no", ""))
 
 def _vessel_label(vessel: Mapping[str, Any]) -> str:
-    ship_id = vessel.get("ship_id", "")
-    ship_name = vessel.get("ship_name")
-    if ship_name:
-        return f"{ship_name} ({ship_id})"
-    return str(ship_id)
-
+    return str(vessel.get("ship_name", ""))
 
 class GuiIO:
     """FrontendIO implementation that writes to a tkinter Text widget."""
@@ -60,12 +55,17 @@ class VesselSelectionDialog(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.resizable(True, True)
-        self.minsize(350, 300)
+        self.minsize(500, 500)
 
         self._vessels = vessels
         self._sorted_vessels: list[tuple[str, dict[str, str]]] = []
         self.selected_ids: set[str] = set(previously_selected)
         self._cancelled = False
+        self._filter_customer = tk.StringVar()
+        self._filter_name = tk.StringVar()
+        self._filter_id = tk.StringVar()
+        self._sort_col: int | None = None
+        self._sort_asc: bool = True
 
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
@@ -75,12 +75,10 @@ class VesselSelectionDialog(tk.Toplevel):
 
         btn_frame = ttk.Frame(self, padding=5)
         btn_frame.pack(fill="x")
-        ttk.Button(btn_frame, text="Select All", command=self._select_all).pack(
-            side="left", padx=2
-        )
-        ttk.Button(btn_frame, text="Clear All", command=self._clear_all).pack(
-            side="left", padx=2
-        )
+        self._select_btn = ttk.Button(btn_frame, text="Select All", command=self._select_all)
+        self._select_btn.pack(side="left", padx=2)
+        self._clear_btn = ttk.Button(btn_frame, text="Clear All", command=self._clear_all)
+        self._clear_btn.pack(side="left", padx=2)
         ttk.Button(btn_frame, text="Done", command=self._on_done).pack(
             side="right", padx=2
         )
@@ -100,13 +98,24 @@ class VesselSelectionDialog(tk.Toplevel):
         )
 
         data = [
-            [vid in self.selected_ids, vessel_data["customer_no"], vessel_data["label"]]
+            [vid in self.selected_ids, vessel_data["customer_no"], vessel_data["label"],vessel_data["id"]]
             for vid, vessel_data in self._sorted_vessels
         ]
 
+        filter_frame = ttk.Frame(self, padding=(5, 0, 5, 2))
+        filter_frame.pack(fill="x")
+        for text, var in [
+            ("Customer No:", self._filter_customer),
+            ("Vessel Name:", self._filter_name),
+            ("Vessel ID:", self._filter_id),
+        ]:
+            ttk.Label(filter_frame, text=text).pack(side="left", padx=(4, 1))
+            ttk.Entry(filter_frame, textvariable=var, width=14).pack(side="left", padx=(0, 6))
+            var.trace_add("write", self._apply_filters)
+
         self._sheet = Sheet(
             self,
-            headers=["", "Customer No", "Vessel"],
+            headers=["Select", "Customer No", "Vessel Name", "Vessel ID"],
             data=data,
         )
         self._sheet.pack(fill="both", expand=True, padx=5, pady=5)
@@ -114,23 +123,102 @@ class VesselSelectionDialog(tk.Toplevel):
         self._sheet.disable_bindings("edit_cell", "edit_header", "edit_index")
         if data:
             self._sheet.checkbox(f"A1:A{len(data)}")
+        self._visible_rows = list(range(len(data)))
+        self._sheet.CH.bind("<ButtonRelease-1>", self._on_header_click)
 
-    def _select_all(self) -> None:
-        for i in range(len(self._sorted_vessels)):
-            self._sheet.set_cell_data(i, 0, True)
+    def _apply_filters(self, *_: Any) -> None:
+        f_customer = self._filter_customer.get().lower()
+        f_name = self._filter_name.get().lower()
+        f_id = self._filter_id.get().lower()
+        self._visible_rows = [
+            i for i, (vid, vdata) in enumerate(self._sorted_vessels)
+            if f_customer in vdata["customer_no"].lower()
+            and f_name in vdata["label"].lower()
+            and f_id in vid.lower()
+        ]
+        self._sheet.display_rows(rows=self._visible_rows, all_displayed=False)
         self._sheet.refresh()
+        filtered = any([f_customer, f_name, f_id])
+        self._select_btn.configure(text="Select Filtered" if filtered else "Select All")
+        self._clear_btn.configure(text="Clear Filtered" if filtered else "Clear All")
 
-    def _clear_all(self) -> None:
-        for i in range(len(self._sorted_vessels)):
-            self._sheet.set_cell_data(i, 0, False)
-        self._sheet.refresh()
+    _HEADER_LABELS = ["Select", "Customer No", "Vessel Name", "Vessel ID"]
 
-    def _on_done(self) -> None:
+    def _on_header_click(self, event: Any) -> None:
+        canvas_x = self._sheet.CH.canvasx(event.x)
+        col_positions = self._sheet.MT.col_positions
+        col = next(
+            (i for i, pos in enumerate(col_positions[1:]) if canvas_x < pos),
+            len(col_positions) - 2,
+        )
+        if not (0 <= col < len(self._HEADER_LABELS)):
+            return
+        self._sync_selected_ids()
+        if self._sort_col == col:
+            self._sort_asc = not self._sort_asc
+        else:
+            self._sort_col = col
+            self._sort_asc = True
+        self._resort()
+        self._reload_sheet_data()
+        self._apply_filters()
+
+    def _sync_selected_ids(self) -> None:
         self.selected_ids = {
             vid
             for i, (vid, _) in enumerate(self._sorted_vessels)
             if self._sheet.get_cell_data(i, 0)
         }
+
+    def _resort(self) -> None:
+        col, reverse = self._sort_col, not self._sort_asc
+        if col == 0:
+            self._sorted_vessels.sort(
+                key=lambda item: item[0] not in self.selected_ids, reverse=reverse
+            )
+        elif col == 1:
+            self._sorted_vessels.sort(
+                key=lambda item: item[1]["customer_no"].lower(), reverse=reverse
+            )
+        elif col == 2:
+            self._sorted_vessels.sort(
+                key=lambda item: item[1]["label"].lower(), reverse=reverse
+            )
+        elif col == 3:
+            self._sorted_vessels.sort(
+                key=lambda item: item[0].lower(), reverse=reverse
+            )
+
+    def _reload_sheet_data(self) -> None:
+        data = [
+            [vid in self.selected_ids, vdata["customer_no"], vdata["label"], vid]
+            for vid, vdata in self._sorted_vessels
+        ]
+        self._sheet.set_sheet_data(data)
+        if data:
+            self._sheet.checkbox(f"A1:A{len(data)}")
+        self._visible_rows = list(range(len(data)))
+        self._update_headers()
+
+    def _update_headers(self) -> None:
+        headers = [
+            (("↑ " if self._sort_asc else "↓ ") + label if i == self._sort_col else label)
+            for i, label in enumerate(self._HEADER_LABELS)
+        ]
+        self._sheet.headers(headers)
+
+    def _select_all(self) -> None:
+        for i in self._visible_rows:
+            self._sheet.set_cell_data(i, 0, True)
+        self._sheet.refresh()
+
+    def _clear_all(self) -> None:
+        for i in self._visible_rows:
+            self._sheet.set_cell_data(i, 0, False)
+        self._sheet.refresh()
+
+    def _on_done(self) -> None:
+        self._sync_selected_ids()
         self.grab_release()
         self.destroy()
 
