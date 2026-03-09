@@ -538,7 +538,7 @@ def _normalize_matching_value(value: object) -> object:
     if value is None:
         return None
     text = value if isinstance(value, str) else str(value)
-    normalized = " ".join(text.strip().split()).casefold()
+    normalized = text.strip() # " ".join(text.strip().split()).casefold()
     return normalized
 
 
