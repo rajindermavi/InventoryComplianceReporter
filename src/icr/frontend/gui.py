@@ -63,7 +63,7 @@ class VesselSelectionDialog(tk.Toplevel):
         self.minsize(350, 300)
 
         self._vessels = vessels
-        self._vars: dict[str, tk.BooleanVar] = {}
+        self._sorted_vessels: list[tuple[str, dict[str, str]]] = []
         self.selected_ids: set[str] = set(previously_selected)
         self._cancelled = False
 
@@ -71,6 +71,8 @@ class VesselSelectionDialog(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
 
     def _build_ui(self) -> None:
+        from tksheet import Sheet
+
         btn_frame = ttk.Frame(self, padding=5)
         btn_frame.pack(fill="x")
         ttk.Button(btn_frame, text="Select All", command=self._select_all).pack(
@@ -83,59 +85,52 @@ class VesselSelectionDialog(tk.Toplevel):
             side="right", padx=2
         )
 
-        canvas_frame = ttk.Frame(self)
-        canvas_frame.pack(fill="both", expand=True, padx=5, pady=5)
-
-        canvas = tk.Canvas(canvas_frame)
-        scrollbar = ttk.Scrollbar(canvas_frame, orient="vertical", command=canvas.yview)
-        self._inner = ttk.Frame(canvas)
-
-        self._inner.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
-        canvas.create_window((0, 0), window=self._inner, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        normalized_vessels = {}
+        normalized_vessels: dict[str, dict[str, str]] = {}
         for vessel in self._vessels:
             vid = _vessel_id(vessel)
-            label = _vessel_label(vessel)
-            customer_no = _vessel_customer_no(vessel)  # Access customer_no to ensure it's loaded
             normalized_vessels[vid] = {
                 "id": vid,
-                "label": label, 
-                "customer_no": customer_no
+                "label": _vessel_label(vessel),
+                "customer_no": _vessel_customer_no(vessel),
             }
 
-        normalized_vessels = sorted(
-            normalized_vessels.items(), 
-            key=lambda item: (item[1]['customer_no'], item[1]['label'])
+        self._sorted_vessels = sorted(
+            normalized_vessels.items(),
+            key=lambda item: (item[1]["customer_no"], item[1]["label"]),
         )
 
-        for vid, vessel_data in normalized_vessels:
-            label = vessel_data['label']
-            customer_no = vessel_data['customer_no']
+        data = [
+            [vid in self.selected_ids, vessel_data["customer_no"], vessel_data["label"]]
+            for vid, vessel_data in self._sorted_vessels
+        ]
 
-            var = tk.BooleanVar(value=vid in self.selected_ids)
-            self._vars[vid] = var
-            ttk.Checkbutton(self._inner, text=f"{customer_no} - {label}", variable=var).pack(
-                anchor="w", padx=5, pady=1
-            )
+        self._sheet = Sheet(
+            self,
+            headers=["", "Customer No", "Vessel"],
+            data=data,
+        )
+        self._sheet.pack(fill="both", expand=True, padx=5, pady=5)
+        self._sheet.enable_bindings()
+        self._sheet.disable_bindings("edit_cell", "edit_header", "edit_index")
+        if data:
+            self._sheet.checkbox(f"A1:A{len(data)}")
 
     def _select_all(self) -> None:
-        for var in self._vars.values():
-            var.set(True)
+        for i in range(len(self._sorted_vessels)):
+            self._sheet.set_cell_data(i, 0, True)
+        self._sheet.refresh()
 
     def _clear_all(self) -> None:
-        for var in self._vars.values():
-            var.set(False)
+        for i in range(len(self._sorted_vessels)):
+            self._sheet.set_cell_data(i, 0, False)
+        self._sheet.refresh()
 
     def _on_done(self) -> None:
-        self.selected_ids = {vid for vid, var in self._vars.items() if var.get()}
+        self.selected_ids = {
+            vid
+            for i, (vid, _) in enumerate(self._sorted_vessels)
+            if self._sheet.get_cell_data(i, 0)
+        }
         self.grab_release()
         self.destroy()
 
