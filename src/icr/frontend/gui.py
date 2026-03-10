@@ -257,6 +257,7 @@ class ICRApp:
         self._build_config_tab()
         self._build_generate_tab()
         self._build_review_tab()
+        self._build_dispatch_tab()
         self._build_export_tab()
 
         self._flow = AppFlow(
@@ -445,7 +446,102 @@ class ICRApp:
         if self._review_html and report_path:
             self._review_html.load_file(report_path)
 
-    # ── Tab 4: Export ──────────────────────────────────────────────
+    # ── Tab 4: Dispatch Email ──────────────────────────────────────
+
+    def _build_dispatch_tab(self) -> None:
+        tab = ttk.Frame(self._notebook, padding=15)
+        self._notebook.add(tab, text="Dispatch Email")
+
+        self._dispatch_from = tk.StringVar()
+        self._dispatch_client_id = tk.StringVar()
+        self._dispatch_authority = tk.StringVar(value="organization")
+
+        # Config fields
+        config_frame = ttk.LabelFrame(tab, text="Mail Configuration", padding=10)
+        config_frame.pack(fill="x", pady=(0, 10))
+
+        fields = [
+            ("From Email:", self._dispatch_from, "entry"),
+            ("Client ID:", self._dispatch_client_id, "entry"),
+            ("Authority:", self._dispatch_authority, "combo"),
+        ]
+        for row, (label, var, kind) in enumerate(fields):
+            ttk.Label(config_frame, text=label).grid(row=row, column=0, sticky="w", pady=3)
+            if kind == "entry":
+                ttk.Entry(config_frame, textvariable=var, width=50).grid(
+                    row=row, column=1, sticky="ew", padx=5
+                )
+            else:
+                ttk.Combobox(
+                    config_frame,
+                    textvariable=var,
+                    values=["organization", "common", "consumers"],
+                    state="readonly",
+                    width=20,
+                ).grid(row=row, column=1, sticky="w", padx=5)
+        config_frame.columnconfigure(1, weight=1)
+
+        # Dispatch button
+        btn_frame = ttk.Frame(tab)
+        btn_frame.pack(fill="x", pady=(0, 10))
+        self._dispatch_btn = ttk.Button(
+            btn_frame, text="Dispatch", command=self._on_dispatch, state="disabled"
+        )
+        self._dispatch_btn.pack(side="right")
+
+        # Status / device-code area
+        status_frame = ttk.LabelFrame(tab, text="Status", padding=5)
+        status_frame.pack(fill="both", expand=True)
+
+        self._dispatch_log = tk.Text(status_frame, state="disabled", wrap="word", height=15)
+        scroll = ttk.Scrollbar(status_frame, orient="vertical", command=self._dispatch_log.yview)
+        self._dispatch_log.configure(yscrollcommand=scroll.set)
+        self._dispatch_log.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
+
+    def _dispatch_log_write(self, message: str) -> None:
+        self._dispatch_log.configure(state="normal")
+        self._dispatch_log.insert("end", message + "\n")
+        self._dispatch_log.see("end")
+        self._dispatch_log.configure(state="disabled")
+
+    def _on_dispatch(self) -> None:
+        from_email = self._dispatch_from.get().strip()
+        client_id = self._dispatch_client_id.get().strip()
+        authority = self._dispatch_authority.get()
+
+        if not from_email or not client_id:
+            self._dispatch_log_write("From Email and Client ID are required.")
+            return
+
+        self._dispatch_btn.configure(state="disabled")
+
+        def show_message(flow: Any) -> None:
+            msg = flow.get("message") if isinstance(flow, dict) else str(flow)
+            self.root.after(0, self._dispatch_log_write, msg)
+
+        def work() -> Any:
+            return self._flow.dispatch_emails(
+                from_email=from_email,
+                client_id=client_id,
+                authority=authority,
+                show_message=show_message,
+            )
+
+        def done(result: Any) -> None:
+            self._dispatch_btn.configure(
+                state="normal" if self._summary is not None else "disabled"
+            )
+            if result is not None:
+                self._dispatch_log_write(
+                    f"Done. Sent: {result.sent}, Failed: {result.failed}"
+                )
+                for err in result.errors:
+                    self._dispatch_log_write(f"  Error: {err}")
+
+        self._run_in_thread(work, done)
+
+    # ── Tab 5: Export ──────────────────────────────────────────────
 
     def _build_export_tab(self) -> None:
         tab = ttk.Frame(self._notebook, padding=15)
@@ -529,7 +625,7 @@ class ICRApp:
 
     def _on_tab_changed(self, event: Any) -> None:
         selected = self._notebook.index(self._notebook.select())
-        if selected == 3:  # Export tab
+        if selected == 4:  # Export tab
             self._refresh_runs_list()
 
     def _refresh_runs_list(self) -> None:
@@ -666,6 +762,9 @@ class ICRApp:
         self._select_btn.configure(state=select_state)
         self._process_btn.configure(state=process_state)
         self._main_report_btn.configure(state=main_report_state)
+        self._dispatch_btn.configure(
+            state="normal" if self._summary is not None else "disabled"
+        )
         self._update_export_button_states()
 
     # ── Actions ────────────────────────────────────────────────────

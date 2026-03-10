@@ -21,6 +21,8 @@ from icr.backend import (
     render_run_summary,
     render_vessel_report,
 )
+from icr.backend.emailer.draft import DraftingResult
+from icr.backend.emailer.send import SendResult, send_drafts
 from icr.backend.config import get_config
 
 from icr.utils.logging import get_logger
@@ -68,6 +70,7 @@ class WorkflowState:
         self.ingested = False
         self.ams_vessels: list[Mapping[str, Any]] = []
         self.selected_vessel_ids: list[str] = []
+        self.drafting_result: DraftingResult | None = None
         
     def initialize(self) -> None:
         """Initialize database and ingest files."""
@@ -257,6 +260,7 @@ class WorkflowState:
             from_email=self.config.email.from_email,
             run_id=self.paths.run_id,
         )
+        self.drafting_result = drafting_result
         
         logger.info(
             f"[{self.paths.run_id}] Drafted {len(drafting_result.drafts)} emails"
@@ -270,6 +274,27 @@ class WorkflowState:
             
         return summary_data
         
+    def dispatch_emails(
+        self,
+        *,
+        from_email: str,
+        client_id: str,
+        authority: str = "organization",
+        passphrase: str | None = None,
+        show_message: Any = None,
+    ) -> SendResult:
+        """Dispatch drafted emails via Microsoft Graph."""
+        if self.drafting_result is None:
+            raise RuntimeError("No drafts available. Process vessels first.")
+        return send_drafts(
+            self.drafting_result,
+            from_email=from_email,
+            client_id=client_id,
+            authority=authority,
+            passphrase=passphrase,
+            show_message=show_message,
+        )
+
     def _get_vessel_by_id(self, vessel_id: str) -> Mapping[str, Any] | None:
         """Find vessel in cached AMS vessels list."""
         for vessel in self.ams_vessels:
@@ -353,6 +378,33 @@ def process_vessels(
         vessel_ids,
         discrepancy_only=discrepancy_only,
         ships_with_discrepancies_only=ships_with_discrepancies_only,
+    )
+
+
+def get_current_drafts() -> DraftingResult | None:
+    """Return the drafting result from the current run, or None if not yet processed."""
+    if _current_workflow is None:
+        return None
+    return _current_workflow.drafting_result
+
+
+def dispatch_emails(
+    *,
+    from_email: str,
+    client_id: str,
+    authority: str = "organization",
+    passphrase: str | None = None,
+    show_message: Any = None,
+) -> SendResult:
+    """Public API: dispatch drafted emails via Microsoft Graph."""
+    if _current_workflow is None:
+        raise RuntimeError("Workflow not initialized")
+    return _current_workflow.dispatch_emails(
+        from_email=from_email,
+        client_id=client_id,
+        authority=authority,
+        passphrase=passphrase,
+        show_message=show_message,
     )
 
 

@@ -29,6 +29,7 @@ class DraftAttachment:
     filename: str
     content_type: str
     data: bytes
+    path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -343,6 +344,7 @@ def _resolve_attachments(
             filename=pdf_path.name,
             content_type="application/pdf",
             data=pdf_path.read_bytes(),
+            path=pdf_path,
         )
     )
     return attachments

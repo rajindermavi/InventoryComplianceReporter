@@ -125,6 +125,24 @@ class AppFlow:
             _display_summary(self._io, summary)
         return summary
 
+    def dispatch_emails(
+        self,
+        *,
+        from_email: str,
+        client_id: str,
+        authority: str = "organization",
+        passphrase: str | None = None,
+        show_message: Any = None,
+    ) -> Any:
+        """Dispatch current run's drafted emails via Microsoft Graph."""
+        return self._backend.dispatch_emails(
+            from_email=from_email,
+            client_id=client_id,
+            authority=authority,
+            passphrase=passphrase,
+            show_message=show_message,
+        )
+
     def list_runs(self) -> list[Mapping[str, Any]]:
         """List all past runs."""
         return self._backend.list_runs()
