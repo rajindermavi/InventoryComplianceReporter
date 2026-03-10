@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import Any, Mapping, Sequence
 
+from icr.backend.persistence.settings import load_settings, save_settings
 from icr.frontend import messages
 from icr.frontend.flow import AppFlow, FrontendIO
 
@@ -259,6 +260,7 @@ class ICRApp:
         self._build_review_tab()
         self._build_dispatch_tab()
         self._build_export_tab()
+        self._load_dispatch_settings()
 
         self._flow = AppFlow(
             get_vessel_id=_vessel_id,
@@ -446,6 +448,15 @@ class ICRApp:
         if self._review_html and report_path:
             self._review_html.load_file(report_path)
 
+    def _load_dispatch_settings(self) -> None:
+        settings = load_settings()
+        if v := settings.get("dispatch_from"):
+            self._dispatch_from.set(v)
+        if v := settings.get("dispatch_client_id"):
+            self._dispatch_client_id.set(v)
+        if v := settings.get("dispatch_authority"):
+            self._dispatch_authority.set(v)
+
     # ── Tab 4: Dispatch Email ──────────────────────────────────────
 
     def _build_dispatch_tab(self) -> None:
@@ -515,6 +526,11 @@ class ICRApp:
             return
 
         self._dispatch_btn.configure(state="disabled")
+        save_settings({
+            "dispatch_from": from_email,
+            "dispatch_client_id": client_id,
+            "dispatch_authority": authority,
+        })
 
         def show_message(flow: Any) -> None:
             msg = flow.get("message") if isinstance(flow, dict) else str(flow)
