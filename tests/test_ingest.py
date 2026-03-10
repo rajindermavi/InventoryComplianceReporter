@@ -85,12 +85,11 @@ def _write_valid_sources(tmp_path: Path) -> dict[str, Path]:
             "IMONO",
             "SHIPSTAT",
             "EMAIL",
-            "OFFICEEMAIL",
             "NOTE1",
             "NOTE2",
             "NOTE3",
         ],
-        [["S1", "Ship", "C1", "IMO", "Active", "ship@example.com", "office@example.com", "N1", "N2", "N3"]],
+        [["S1", "Ship", "C1", "IMO", "Active", "ship@example.com", "N1", "N2", "N3"]],
     )
     _write_workbook(
         vessels_inventory_path,
@@ -244,7 +243,7 @@ def test_duplicate_headers_warn_and_use_first_column(
 
     assert warnings
     assert row is not None
-    assert row["item"] == "first"
+    assert row["item"] == "FIRST"
 
 
 def test_missing_key_fields_skip_rows_with_warning(
@@ -299,12 +298,11 @@ def test_invalid_email_format_emits_warning_and_ingests_row(
             "IMONO",
             "SHIPSTAT",
             "EMAIL",
-            "OFFICEEMAIL",
             "NOTE1",
             "NOTE2",
             "NOTE3",
         ],
-        [["S1", "Ship", "C1", "IMO", "Active", "not-an-email", "office@example.com", "N1", "N2", "N3"]],
+        [["S1", "Ship", "C1", "IMO", "Active", "not-an-email", "N1", "N2", "N3"]],
     )
 
     summary = ingest_excel_files(
@@ -414,12 +412,11 @@ def test_numeric_shipid_is_coerced_to_string(
             "IMONO",
             "SHIPSTAT",
             "EMAIL",
-            "OFFICEEMAIL",
             "NOTE1",
             "NOTE2",
             "NOTE3",
         ],
-        [[12345, "Ship", "C1", "IMO", "Active", "ship@example.com", "office@example.com", "N1", "N2", "N3"]],
+        [[12345, "Ship", "C1", "IMO", "Active", "ship@example.com", "N1", "N2", "N3"]],
     )
 
     ingest_excel_files(

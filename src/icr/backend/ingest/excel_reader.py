@@ -111,7 +111,6 @@ VESSEL_INDEX_REQUIRED = (
     "imono",
     "shipstat",
     "email",
-    "officeemail",
     "note1",
     "note2",
     "note3",
@@ -152,8 +151,8 @@ VESSEL_INDEX_SPEC = SheetSpec(
     required_columns=("shipid","email"),
     matching_columns=("shipid",),
     dupe_warning_columns = ("shipid",), 
-    warning_columns=("officeemail",),
-    email_columns=("email","officeemail"),
+    warning_columns=(),
+    email_columns=("email",),
     date_columns=(),
     table_name=TABLE_VESSEL,
     row_mapper=lambda row: {
@@ -163,7 +162,6 @@ VESSEL_INDEX_SPEC = SheetSpec(
         "imo_no": row.get("imono"),
         "ship_status": row.get("shipstat"),
         "ship_email": row.get("email"),
-        "office_email": row.get("officemail"),
         "ams": 1 if "ams" in str(row.get("note2", "")).casefold() else 0,
     },
 )
