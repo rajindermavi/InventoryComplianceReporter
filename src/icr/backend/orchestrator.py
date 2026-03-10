@@ -124,7 +124,13 @@ class WorkflowState:
         logger.info(f"[{self.paths.run_id}] Found {len(vessels)} AMS vessels")
         return vessels
         
-    def process_vessels(self, vessel_ids: Sequence[str]) -> Mapping[str, Any]:
+    def process_vessels(
+        self,
+        vessel_ids: Sequence[str],
+        *,
+        discrepancy_only: bool = False,
+        ships_with_discrepancies_only: bool = False,
+    ) -> Mapping[str, Any]:
         """Process selected vessels: compare, report, email."""
         if not self.ingested:
             raise RuntimeError("Must call discover_ams_vessels first")
@@ -166,20 +172,24 @@ class WorkflowState:
                 if not (issue.issue_type.value == "OUTDATED" or issue.issue_type.value == "MISSING_ONBOARD")
             ]
             
+            # Optionally skip vessels with no discrepancies
+            if ships_with_discrepancies_only and not problem_issues:
+                continue
+
             # Generate HTML report
             html_content = render_vessel_report(
                 vessel=vessel,
                 problem_issues=problem_issues,
-                ok_issues = ok_issues,
+                ok_issues=[] if discrepancy_only else ok_issues,
                 run_timestamp=self._get_timestamp(),
             )
-            
+
             # Write report to file
             # name file as {customer_no} {vessel_name} {imono} report.html
             report_filename = f"{vessel.get('customer_no', 'unknown')} {vessel.get('ship_name', 'unknown')} {vessel.get('imo_no', 'unknown')} report.html"
             report_path = self.paths.run_dir / report_filename
             report_path.write_text(html_content, encoding="utf-8")
-            
+
             vessels_processed.append({
                 "ship_id": vessel_id,
                 "ship_name": vessel.get("ship_name"),
@@ -330,11 +340,20 @@ def discover_ams_vessels() -> list[Mapping[str, Any]]:
     return _current_workflow.discover_ams_vessels()
 
 
-def process_vessels(vessel_ids: Sequence[str]) -> Mapping[str, Any]:
+def process_vessels(
+    vessel_ids: Sequence[str],
+    *,
+    discrepancy_only: bool = False,
+    ships_with_discrepancies_only: bool = False,
+) -> Mapping[str, Any]:
     """Public API: process selected vessels."""
     if _current_workflow is None:
         raise RuntimeError("Workflow not initialized")
-    return _current_workflow.process_vessels(vessel_ids)
+    return _current_workflow.process_vessels(
+        vessel_ids,
+        discrepancy_only=discrepancy_only,
+        ships_with_discrepancies_only=ships_with_discrepancies_only,
+    )
 
 
 def list_runs() -> list[Mapping[str, Any]]:

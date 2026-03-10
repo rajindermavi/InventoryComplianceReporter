@@ -98,7 +98,13 @@ class AppFlow:
             self._vessels = vessels
         return vessels
 
-    def process(self, vessel_ids: Sequence[str]) -> Mapping[str, Any] | None:
+    def process(
+        self,
+        vessel_ids: Sequence[str],
+        *,
+        discrepancy_only: bool = False,
+        ships_with_discrepancies_only: bool = False,
+    ) -> Mapping[str, Any] | None:
         """Process the selected vessels via the backend.
 
         Intended to be called from a background thread when used in a GUI.
@@ -107,7 +113,11 @@ class AppFlow:
         self._io.display(messages.PROGRESS["processing"])
         summary = _call_backend_with_result(
             self._io,
-            lambda: self._backend.process_vessels(vessel_ids),
+            lambda: self._backend.process_vessels(
+                vessel_ids,
+                discrepancy_only=discrepancy_only,
+                ships_with_discrepancies_only=ships_with_discrepancies_only,
+            ),
             messages.ERRORS["processing"],
         )
         if summary is not None:

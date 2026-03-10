@@ -248,6 +248,8 @@ class ICRApp:
         self._summary: Mapping[str, Any] | None = None
         self._processing = False
         self._runs_cache: list[Mapping[str, Any]] = []
+        self._discrepancy_only = tk.BooleanVar(value=False)
+        self._ships_with_discrepancies_only = tk.BooleanVar(value=False)
 
         self._notebook = ttk.Notebook(self.root)
         self._notebook.pack(fill="both", expand=True, padx=5, pady=5)
@@ -318,15 +320,30 @@ class ICRApp:
         )
         self._select_btn.pack(side="left", padx=5)
 
-        self._process_btn = ttk.Button(
-            btn_frame, text="Process", command=self._on_process
-        )
-        self._process_btn.pack(side="left", padx=5)
-
         self._progress = ttk.Progressbar(tab, mode="indeterminate")
 
         log_frame = ttk.LabelFrame(tab, text="Status", padding=5)
         log_frame.pack(fill="both", expand=True)
+
+        opt_frame = ttk.Frame(tab)
+        opt_frame.pack(fill="x", pady=(6, 0))
+        ttk.Checkbutton(
+            opt_frame,
+            text="Ships With Discrepancies Only",
+            variable=self._ships_with_discrepancies_only,
+        ).pack(side="right", padx=5)
+        ttk.Checkbutton(
+            opt_frame,
+            text="Discrepancy Reports Only",
+            variable=self._discrepancy_only,
+        ).pack(side="right", padx=5)
+
+        process_frame = ttk.Frame(tab)
+        process_frame.pack(fill="x", pady=(4, 0))
+        self._process_btn = ttk.Button(
+            process_frame, text="Process", command=self._on_process
+        )
+        self._process_btn.pack(side="right", padx=5)
 
         self._log_text = tk.Text(log_frame, state="disabled", wrap="word", height=15)
         log_scroll = ttk.Scrollbar(
@@ -707,9 +724,15 @@ class ICRApp:
         self._show_progress(True)
 
         ids = list(self._selected_ids)
+        discrepancy_only = self._discrepancy_only.get()
+        ships_with_discrepancies_only = self._ships_with_discrepancies_only.get()
 
         def work() -> Mapping[str, Any] | None:
-            return self._flow.process(ids)
+            return self._flow.process(
+                ids,
+                discrepancy_only=discrepancy_only,
+                ships_with_discrepancies_only=ships_with_discrepancies_only,
+            )
 
         def done(result: Any) -> None:
             self._show_progress(False)
