@@ -213,3 +213,5 @@ __marimo__/
 
 *.db
 *runs*
+
+client_id.txt
