@@ -216,7 +216,10 @@ def _resolve_recipients(
             )
         )
 
-    recipients = [email for email in (ship_email, office_email) if email]
+    recipients: list[str] = []
+    for raw in (ship_email, office_email):
+        if raw:
+            recipients.extend(addr.strip() for addr in raw.split(";") if addr.strip())
     for email in recipients:
         if not _is_valid_email(email):
             errors.append(

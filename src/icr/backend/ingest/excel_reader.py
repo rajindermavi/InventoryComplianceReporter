@@ -594,7 +594,7 @@ def _is_valid_email(value: object) -> bool:
         return True
     if not isinstance(value, str):
         return False
-    return bool(_EMAIL_PATTERN.match(value))
+    return all(bool(_EMAIL_PATTERN.match(part.strip())) for part in value.split(";") if part.strip())
 
 
 def _parse_mmddyyyy_date(value: object) -> date | None:
