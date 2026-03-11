@@ -55,6 +55,7 @@ from .reporting import (
 )
 from .orchestrator import (
     discover_ams_vessels,
+    dispatch_emails,
     export_current_run,
     export_run,
     initialize_workflow,
@@ -89,6 +90,7 @@ __all__ = [
     "compare_inventory",
     "deliver_emails",
     "discover_ams_vessels",
+    "dispatch_emails",
     "draft_emails",
     "export_current_run",
     "export_run",

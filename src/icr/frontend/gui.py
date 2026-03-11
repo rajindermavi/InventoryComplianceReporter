@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -456,6 +457,8 @@ class ICRApp:
             self._dispatch_client_id.set(v)
         if v := settings.get("dispatch_authority"):
             self._dispatch_authority.set(v)
+        if not settings.get("dispatch_passphrase"):
+            save_settings({"dispatch_passphrase": secrets.token_hex(32)})
 
     # ── Tab 4: Dispatch Email ──────────────────────────────────────
 
@@ -486,7 +489,7 @@ class ICRApp:
                 ttk.Combobox(
                     config_frame,
                     textvariable=var,
-                    values=["organization", "common", "consumers"],
+                    values=["organization", "common", "consumer"],
                     state="readonly",
                     width=20,
                 ).grid(row=row, column=1, sticky="w", padx=5)
@@ -526,6 +529,7 @@ class ICRApp:
             return
 
         self._dispatch_btn.configure(state="disabled")
+        passphrase = load_settings().get("dispatch_passphrase")
         save_settings({
             "dispatch_from": from_email,
             "dispatch_client_id": client_id,
@@ -541,6 +545,7 @@ class ICRApp:
                 from_email=from_email,
                 client_id=client_id,
                 authority=authority,
+                passphrase=passphrase,
                 show_message=show_message,
             )
 
@@ -555,7 +560,15 @@ class ICRApp:
                 for err in result.errors:
                     self._dispatch_log_write(f"  Error: {err}")
 
-        self._run_in_thread(work, done)
+        def wrapper() -> None:
+            try:
+                result = work()
+            except Exception as exc:
+                self.root.after(0, self._dispatch_log_write, f"Error: {exc}")
+                result = None
+            self.root.after(0, done, result)
+
+        threading.Thread(target=wrapper, daemon=True).start()
 
     # ── Tab 5: Export ──────────────────────────────────────────────
 
