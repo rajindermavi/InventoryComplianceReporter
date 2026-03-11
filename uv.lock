@@ -228,7 +228,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "nicemail", specifier = ">=0.1.1" },
+    { name = "nicemail", specifier = ">=0.2.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "tkinterweb", specifier = ">=3.24" },
@@ -251,7 +251,7 @@ wheels = [
 
 [[package]]
 name = "nicemail"
-version = "0.1.1"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -259,9 +259,9 @@ dependencies = [
     { name = "platformdirs" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/03/1c/35b50cfcb0918b0ce39049d2e1405b22982d3dc98e8ce55dcbebcbc871a1/nicemail-0.1.1.tar.gz", hash = "sha256:6b3243af15b54ae46437370486c88b3ba0e8fb34a719c1d378c1a50c16901eba", size = 26907, upload-time = "2026-03-10T00:59:31.782Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/00/ff07b7dc53b10fdffed420a2f0f3c9b0e57e2585a2cf34df51685025bc0c/nicemail-0.2.0.tar.gz", hash = "sha256:e2949368e29c6a4880187676411aa474995c4deabf65ace2bf115f8afaf26f74", size = 28236, upload-time = "2026-03-11T08:38:11.317Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/39/ef/c210f9c1fae479040bd9318923547cf6fce4c301c04243a6e127f4ed1bf0/nicemail-0.1.1-py3-none-any.whl", hash = "sha256:eb1c4e4b4bca6af0f24f3e3aa3d34dfda6eb9b590078ac4f0b6e16c49adfd323", size = 29702, upload-time = "2026-03-10T00:59:30.606Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/fc/967acdd41833f9c5c227c86d8938b12b86801a0dba61131cd2f6c332c286/nicemail-0.2.0-py3-none-any.whl", hash = "sha256:83e78b2c4ccc862707241f1ba58abe7d5e01f36f7a5f8d8111668ae347311459", size = 33024, upload-time = "2026-03-11T08:38:09.491Z" },
 ]
 
 [[package]]
