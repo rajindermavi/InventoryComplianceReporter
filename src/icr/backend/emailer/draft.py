@@ -207,15 +207,6 @@ def _resolve_recipients(
                 severity="error",
             )
         )
-    if not office_email:
-        errors.append(
-            DraftIssue(
-                vessel_id=ship_id,
-                message="Missing required recipient: office email address.",
-                severity="error",
-            )
-        )
-
     recipients: list[str] = []
     for raw in (ship_email, office_email):
         if raw:
