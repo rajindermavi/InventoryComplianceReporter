@@ -279,18 +279,22 @@ class WorkflowState:
         *,
         from_email: str,
         client_id: str,
+        backend: str = "ms_graph",
         authority: str = "organization",
+        client_secret: str | None = None,
         passphrase: str | None = None,
         show_message: Any = None,
     ) -> SendResult:
-        """Dispatch drafted emails via Microsoft Graph."""
+        """Dispatch drafted emails via nicemail."""
         if self.drafting_result is None:
             raise RuntimeError("No drafts available. Process vessels first.")
         return send_drafts(
             self.drafting_result,
             from_email=from_email,
             client_id=client_id,
+            backend=backend,
             authority=authority,
+            client_secret=client_secret,
             passphrase=passphrase,
             show_message=show_message,
         )
@@ -392,17 +396,21 @@ def dispatch_emails(
     *,
     from_email: str,
     client_id: str,
+    backend: str = "ms_graph",
     authority: str = "organization",
+    client_secret: str | None = None,
     passphrase: str | None = None,
     show_message: Any = None,
 ) -> SendResult:
-    """Public API: dispatch drafted emails via Microsoft Graph."""
+    """Public API: dispatch drafted emails via nicemail."""
     if _current_workflow is None:
         raise RuntimeError("Workflow not initialized")
     return _current_workflow.dispatch_emails(
         from_email=from_email,
         client_id=client_id,
+        backend=backend,
         authority=authority,
+        client_secret=client_secret,
         passphrase=passphrase,
         show_message=show_message,
     )

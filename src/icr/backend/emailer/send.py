@@ -23,31 +23,46 @@ def send_drafts(
     *,
     from_email: str,
     client_id: str,
+    backend: str = "ms_graph",
     authority: str = "organization",
+    client_secret: str | None = None,
     passphrase: str | None = None,
     show_message: Callable[[Any], None] | None = None,
 ) -> SendResult:
-    """Send drafted emails via Microsoft Graph.
+    """Send drafted emails via nicemail.
 
     Args:
         drafts: DraftingResult from draft_emails().
-        from_email: Sender email address (must match MSAL account).
-        client_id: Azure app client ID.
-        authority: MSAL authority type ('organization', 'common', 'consumers').
+        from_email: Sender email address.
+        client_id: OAuth app client ID.
+        backend: nicemail backend ('ms_graph' or 'google_api').
+        authority: MSAL authority type ('organization', 'common', 'consumer'). MS Graph only.
+        client_secret: OAuth client secret. Google API only.
         passphrase: Optional nicemail passphrase for credential storage.
-        show_message: Callback for MSAL device code flow messages.
+        show_message: Callback for device code flow messages.
     """
     from nicemail import EmailClient
 
-    client = EmailClient(
-        backend="ms_graph",
-        msal_config={
-            "email_address": from_email,
-            "client_id": client_id,
-            "authority": authority,
-        },
-        passphrase=passphrase,
-    )
+    if backend == "google_api":
+        client = EmailClient(
+            backend="google_api",
+            google_api_config={
+                "email_address": from_email,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+            passphrase=passphrase,
+        )
+    else:
+        client = EmailClient(
+            backend="ms_graph",
+            msal_config={
+                "email_address": from_email,
+                "client_id": client_id,
+                "authority": authority,
+            },
+            passphrase=passphrase,
+        )
 
     sent = 0
     failed = 0

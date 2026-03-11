@@ -130,15 +130,19 @@ class AppFlow:
         *,
         from_email: str,
         client_id: str,
+        backend: str = "ms_graph",
         authority: str = "organization",
+        client_secret: str | None = None,
         passphrase: str | None = None,
         show_message: Any = None,
     ) -> Any:
-        """Dispatch current run's drafted emails via Microsoft Graph."""
+        """Dispatch current run's drafted emails via nicemail."""
         return self._backend.dispatch_emails(
             from_email=from_email,
             client_id=client_id,
+            backend=backend,
             authority=authority,
+            client_secret=client_secret,
             passphrase=passphrase,
             show_message=show_message,
         )

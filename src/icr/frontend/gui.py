@@ -451,14 +451,19 @@ class ICRApp:
 
     def _load_dispatch_settings(self) -> None:
         settings = load_settings()
+        if v := settings.get("dispatch_backend"):
+            self._dispatch_backend.set(v)
         if v := settings.get("dispatch_from"):
             self._dispatch_from.set(v)
         if v := settings.get("dispatch_client_id"):
             self._dispatch_client_id.set(v)
+        if v := settings.get("dispatch_client_secret"):
+            self._dispatch_client_secret.set(v)
         if v := settings.get("dispatch_authority"):
             self._dispatch_authority.set(v)
         if not settings.get("dispatch_passphrase"):
             save_settings({"dispatch_passphrase": secrets.token_hex(32)})
+        self._update_dispatch_fields()
 
     # ── Tab 4: Dispatch Email ──────────────────────────────────────
 
@@ -466,34 +471,62 @@ class ICRApp:
         tab = ttk.Frame(self._notebook, padding=15)
         self._notebook.add(tab, text="Dispatch Email")
 
+        self._dispatch_backend = tk.StringVar(value="ms_graph")
         self._dispatch_from = tk.StringVar()
         self._dispatch_client_id = tk.StringVar()
+        self._dispatch_client_secret = tk.StringVar()
         self._dispatch_authority = tk.StringVar(value="organization")
 
         # Config fields
         config_frame = ttk.LabelFrame(tab, text="Mail Configuration", padding=10)
         config_frame.pack(fill="x", pady=(0, 10))
-
-        fields = [
-            ("From Email:", self._dispatch_from, "entry"),
-            ("Client ID:", self._dispatch_client_id, "entry"),
-            ("Authority:", self._dispatch_authority, "combo"),
-        ]
-        for row, (label, var, kind) in enumerate(fields):
-            ttk.Label(config_frame, text=label).grid(row=row, column=0, sticky="w", pady=3)
-            if kind == "entry":
-                ttk.Entry(config_frame, textvariable=var, width=50).grid(
-                    row=row, column=1, sticky="ew", padx=5
-                )
-            else:
-                ttk.Combobox(
-                    config_frame,
-                    textvariable=var,
-                    values=["organization", "common", "consumer"],
-                    state="readonly",
-                    width=20,
-                ).grid(row=row, column=1, sticky="w", padx=5)
         config_frame.columnconfigure(1, weight=1)
+
+        # Row 0: Backend
+        ttk.Label(config_frame, text="Backend:").grid(row=0, column=0, sticky="w", pady=3)
+        backend_combo = ttk.Combobox(
+            config_frame,
+            textvariable=self._dispatch_backend,
+            values=["ms_graph", "google_api"],
+            state="readonly",
+            width=20,
+        )
+        backend_combo.grid(row=0, column=1, sticky="w", padx=5)
+        backend_combo.bind("<<ComboboxSelected>>", lambda _: self._update_dispatch_fields())
+
+        # Row 1: From Email
+        ttk.Label(config_frame, text="From Email:").grid(row=1, column=0, sticky="w", pady=3)
+        ttk.Entry(config_frame, textvariable=self._dispatch_from, width=50).grid(
+            row=1, column=1, sticky="ew", padx=5
+        )
+
+        # Row 2: Client ID
+        ttk.Label(config_frame, text="Client ID:").grid(row=2, column=0, sticky="w", pady=3)
+        ttk.Entry(config_frame, textvariable=self._dispatch_client_id, width=50).grid(
+            row=2, column=1, sticky="ew", padx=5
+        )
+
+        # Row 3: Authority (MS Graph only)
+        self._dispatch_authority_label = ttk.Label(config_frame, text="Authority:")
+        self._dispatch_authority_label.grid(row=3, column=0, sticky="w", pady=3)
+        self._dispatch_authority_combo = ttk.Combobox(
+            config_frame,
+            textvariable=self._dispatch_authority,
+            values=["organization", "common", "consumer"],
+            state="readonly",
+            width=20,
+        )
+        self._dispatch_authority_combo.grid(row=3, column=1, sticky="w", padx=5)
+
+        # Row 4: Client Secret (Google API only)
+        self._dispatch_client_secret_label = ttk.Label(config_frame, text="Client Secret:")
+        self._dispatch_client_secret_label.grid(row=4, column=0, sticky="w", pady=3)
+        self._dispatch_client_secret_entry = ttk.Entry(
+            config_frame, textvariable=self._dispatch_client_secret, width=50, show="*"
+        )
+        self._dispatch_client_secret_entry.grid(row=4, column=1, sticky="ew", padx=5)
+
+        self._update_dispatch_fields()
 
         # Dispatch button
         btn_frame = ttk.Frame(tab)
@@ -513,6 +546,18 @@ class ICRApp:
         self._dispatch_log.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
+    def _update_dispatch_fields(self) -> None:
+        if self._dispatch_backend.get() == "ms_graph":
+            self._dispatch_authority_label.grid()
+            self._dispatch_authority_combo.grid()
+            self._dispatch_client_secret_label.grid_remove()
+            self._dispatch_client_secret_entry.grid_remove()
+        else:
+            self._dispatch_authority_label.grid_remove()
+            self._dispatch_authority_combo.grid_remove()
+            self._dispatch_client_secret_label.grid()
+            self._dispatch_client_secret_entry.grid()
+
     def _dispatch_log_write(self, message: str) -> None:
         self._dispatch_log.configure(state="normal")
         self._dispatch_log.insert("end", message + "\n")
@@ -522,7 +567,9 @@ class ICRApp:
     def _on_dispatch(self) -> None:
         from_email = self._dispatch_from.get().strip()
         client_id = self._dispatch_client_id.get().strip()
+        backend = self._dispatch_backend.get()
         authority = self._dispatch_authority.get()
+        client_secret = self._dispatch_client_secret.get().strip() or None
 
         if not from_email or not client_id:
             self._dispatch_log_write("From Email and Client ID are required.")
@@ -531,20 +578,36 @@ class ICRApp:
         self._dispatch_btn.configure(state="disabled")
         passphrase = load_settings().get("dispatch_passphrase")
         save_settings({
+            "dispatch_backend": backend,
             "dispatch_from": from_email,
             "dispatch_client_id": client_id,
+            "dispatch_client_secret": client_secret or "",
             "dispatch_authority": authority,
         })
 
         def show_message(flow: Any) -> None:
-            msg = flow.get("message") if isinstance(flow, dict) else str(flow)
+            if isinstance(flow, dict):
+                url = (
+                    flow.get("verification_uri_complete")
+                    or flow.get("verification_url")
+                    or flow.get("verification_uri")
+                )
+                code = flow.get("user_code")
+                if url and code:
+                    msg = f"Visit {url} and enter code: {code}"
+                else:
+                    msg = flow.get("message") or str(flow)
+            else:
+                msg = str(flow)
             self.root.after(0, self._dispatch_log_write, msg)
 
         def work() -> Any:
             return self._flow.dispatch_emails(
                 from_email=from_email,
                 client_id=client_id,
+                backend=backend,
                 authority=authority,
+                client_secret=client_secret,
                 passphrase=passphrase,
                 show_message=show_message,
             )
