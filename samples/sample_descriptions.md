@@ -57,7 +57,7 @@ that can occur in real-world workflows.
 * 3 ships
     * ship 01: AMS
     * ship 02: AMS
-    * ship 03: AMS
+    * ship 00: AMS
     * ship 04: Missing from vessels index
 
 * Scenario
