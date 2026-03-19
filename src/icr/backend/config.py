@@ -16,7 +16,7 @@ class AMSRule:
 @dataclass(frozen=True)
 class EmailConfig:
     default_office_email: str | None = None
-    subject_template: str = "Inventory Compliance - {SHIPNAME}"
+    subject_template: str = "Inventory Compliance Report - {CUSTOMERID} {SHIPNAME}"
     from_email: str = "compliance@example.com"
     include_pdf: bool = False
 

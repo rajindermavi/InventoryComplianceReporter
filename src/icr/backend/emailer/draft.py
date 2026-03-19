@@ -18,8 +18,20 @@ from string import Formatter
 from typing import Any, Mapping, Sequence
 
 EMAIL_PHASE = "email_drafting"
-DEFAULT_SUBJECT_TEMPLATE = "Inventory Compliance - {SHIPNAME}"
+DEFAULT_SUBJECT_TEMPLATE = "Inventory Compliance Report - {CUSTOMERID} {SHIPNAME}"
 EMAIL_REGEX = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+_EMAIL_PREAMBLE_HTML = """\
+<p>Dear Master,</p>
+<p>Please find the below report of your ACTIVE charts and publications which in our records the edition on board is outdated</p>
+<p>Please review the list &amp; revert to SAFE MARINE TECHNOLOGY if all the items are indeed required on board.</p>
+<p>These will then further be supplied in conjunction with your head office approval</p>
+<p>For physical items please confirm your next convenient port for delivery of items along with ETA/ETD and vessel agent details.</p>
+<p>You may cancel any chart or publication you do not need. Any item is cancelled will be placed as INACTIVE.</p>
+<p>Future Auto New Edition Supply will not include the cancelled / inactive item anymore.</p>
+<p>Therefore, vessel kindly take into account vessel&#39;s requirements that is expected presently and in the future.</p>
+<p>If you have purchased any new edition items please inform up so we can update our records.</p>
+"""
 
 
 @dataclass(frozen=True)
@@ -146,7 +158,7 @@ def draft_emails(
         message = _build_email_message(
             to_addresses=recipients,
             subject=subject,
-            html_body=report_html,
+            html_body=_prepend_preamble(report_html),
             attachments=attachments,
             from_email=from_email,
         )
@@ -166,7 +178,7 @@ def draft_emails(
                 vessel_id=ship_id,
                 to_addresses=tuple(recipients),
                 subject=subject,
-                html_body=report_html,
+                html_body=_prepend_preamble(report_html),
                 attachments=tuple(attachments),
                 eml_path=eml_path,
                 eml_bytes=eml_bytes,
@@ -281,6 +293,7 @@ def _format_subject(
         "SHIPID": ship_id,
         "SHIPNAME": ship_name or ship_id,
         "RUN_ID": run_id,
+        "CUSTOMERID": _coerce_text(vessel.get("customer_no")),
     }
     formatter = Formatter()
     missing_fields = [
@@ -342,6 +355,15 @@ def _resolve_attachments(
         )
     )
     return attachments
+
+
+def _prepend_preamble(html_body: str) -> str:
+    """Insert the standard email preamble after the opening <body> tag."""
+    match = re.search(r"(<body[^>]*>)", html_body, re.IGNORECASE)
+    if match:
+        pos = match.end()
+        return html_body[:pos] + "\n" + _EMAIL_PREAMBLE_HTML + html_body[pos:]
+    return _EMAIL_PREAMBLE_HTML + html_body
 
 
 def _build_email_message(
