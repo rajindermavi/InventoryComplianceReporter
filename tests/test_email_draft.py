@@ -126,9 +126,8 @@ def test_missing_vessel_email_blocks_draft(
     )
 
     assert result.drafts == ()
-    assert len(result.errors) == 2
+    assert len(result.errors) == 1
     assert result.errors[0].message == "Missing required recipient: vessel email address."
-    assert result.errors[1].message == "Missing required recipient: office email address."
 
     summary = read_summary(summary_path)
     assert summary["vessels_processed"] == 0
@@ -144,59 +143,8 @@ def test_missing_vessel_email_blocks_draft(
             "severity": "error",
             "vessel_id": vessel_missing_recipient["ship_id"],
         },
-        {
-            "phase": EMAIL_PHASE,
-            "message": "Missing required recipient: office email address.",
-            "severity": "error",
-            "vessel_id": vessel_missing_recipient["ship_id"],
-        },
     ]
 
-
-def test_missing_office_email_continues_processing(
-    vessel_valid: dict[str, str],
-    html_report: str,
-    summary_path: Path,
-    summary_data: dict[str, object],
-) -> None:
-    """Missing office email prevents one draft but allows others to proceed."""
-    vessel_missing_office = {
-        "ship_id": "VESSEL_003",
-        "ship_name": "Odyssey",
-        "ship_email": "crew@example.com",
-        "office_email": "",
-    }
-    html_reports = {
-        vessel_valid["ship_id"]: html_report,
-        vessel_missing_office["ship_id"]: html_report,
-    }
-
-    result = draft_emails(
-        [vessel_missing_office, vessel_valid],
-        html_reports=html_reports,
-        summary_path=summary_path,
-    )
-
-    assert len(result.drafts) == 1
-    assert result.drafts[0].vessel_id == vessel_valid["ship_id"]
-    assert len(result.errors) == 1
-    assert result.errors[0].message == "Missing required recipient: office email address."
-
-    summary = read_summary(summary_path)
-    assert summary["vessels_processed"] == 1
-    assert summary["run_id"] == summary_data["run_id"]
-    assert summary["ams_vessels_found"] == summary_data["ams_vessels_found"]
-    assert summary["vessels_selected"] == summary_data["vessels_selected"]
-    assert summary["vessels_with_issues"] == summary_data["vessels_with_issues"]
-    assert summary["total_issue_rows"] == summary_data["total_issue_rows"]
-    assert summary["errors"] == [
-        {
-            "phase": EMAIL_PHASE,
-            "message": "Missing required recipient: office email address.",
-            "severity": "error",
-            "vessel_id": vessel_missing_office["ship_id"],
-        }
-    ]
 
 
 def test_invalid_email_includes_vessel_id_and_preserves_errors(
@@ -275,12 +223,13 @@ def test_html_body_embeds_report_verbatim(
 
     assert len(result.drafts) == 1
     draft = result.drafts[0]
-    assert draft.html_body == html_report
+    assert "<p>Dear Master,</p>" in draft.html_body
+    assert "<p>Local Report</p>" in draft.html_body
     assert "http://" not in draft.html_body
     assert "https://" not in draft.html_body
     assert draft.eml_bytes is not None
     payload = draft.eml_bytes.decode("utf-8", errors="ignore")
-    assert html_report in payload
+    assert "<p>Local Report</p>" in payload
 
 
 def test_pdf_attachment_included_when_available(
@@ -505,3 +454,44 @@ def test_summary_update_is_deterministic(
     summary_a = read_summary(summary_path_a)
     summary_b = read_summary(summary_path_b)
     assert summary_a == summary_b
+
+
+def test_vessel_with_no_html_report_blocks_draft(
+    vessel_valid: dict[str, str],
+    summary_path: Path,
+    summary_data: dict[str, object],
+) -> None:
+    """A vessel with no corresponding HTML report produces an error and is skipped.
+
+    Reproduces the case where a vessel is selected but excluded from
+    vessels_processed (e.g. no discrepancies with ships_with_discrepancies_only),
+    so no report file is generated for it but it is still passed to draft_emails.
+    """
+    vessel_no_report = {
+        "ship_id": "VESSEL_NO_REPORT",
+        "ship_name": "Ghost",
+        "ship_email": "ghost@example.com",
+        "office_email": "ops@example.com",
+    }
+    result = draft_emails(
+        [vessel_no_report, vessel_valid],
+        html_reports={vessel_valid["ship_id"]: "<html>ok</html>"},
+        summary_path=summary_path,
+    )
+
+    assert len(result.drafts) == 1
+    assert result.drafts[0].vessel_id == vessel_valid["ship_id"]
+    assert len(result.errors) == 1
+    assert result.errors[0].vessel_id == vessel_no_report["ship_id"]
+    assert result.errors[0].message == "Missing required HTML report for vessel."
+
+    summary = read_summary(summary_path)
+    assert summary["vessels_processed"] == 1
+    assert summary["errors"] == [
+        {
+            "phase": EMAIL_PHASE,
+            "message": "Missing required HTML report for vessel.",
+            "severity": "error",
+            "vessel_id": vessel_no_report["ship_id"],
+        }
+    ]

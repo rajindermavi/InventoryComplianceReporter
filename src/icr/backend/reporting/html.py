@@ -147,15 +147,17 @@ def _render_vessel_summary_table(vessels: Sequence[Mapping[str, Any]]) -> str:
     vessels_with_issues = []
     vessels_without_issues = []
 
-    def row_constructor(label: str, issue_count: int, report_name: str | None) -> str:
+    def row_constructor(label: str, issue_count: int, report_name: str | None, emails: list[str]) -> str:
         report_cell = escape(report_name) if report_name else "N/A"
         if report_name:
             report_cell = f'<a href="{escape(report_name)}">{escape(report_name)}</a>'
+        email_cell = escape("; ".join(emails)) if emails else "N/A"
         return (
             "<tr>"
             f"<td>{escape(label)}</td>"
             f"<td>{issue_count}</td>"
             f"<td>{report_cell}</td>"
+            f"<td>{email_cell}</td>"
             "</tr>"
         )
 
@@ -165,10 +167,8 @@ def _render_vessel_summary_table(vessels: Sequence[Mapping[str, Any]]) -> str:
         label = _format_vessel_label(ship_id, ship_name)
         issue_count = _coerce_int(vessel.get("issue_count"))
         report_name = _coerce_text(vessel.get("report_filename"))
-        #report_cell = escape(report_name)
-        #if report_name:
-        #    report_cell = f'<a href="{escape(report_name)}">{escape(report_name)}</a>'
-        report_row = row_constructor(label, issue_count, report_name)
+        emails = list(vessel.get("emails") or [])
+        report_row = row_constructor(label, issue_count, report_name, emails)
         if issue_count > 0:
             vessels_with_issues.append(report_row)
         else:
@@ -179,6 +179,7 @@ def _render_vessel_summary_table(vessels: Sequence[Mapping[str, Any]]) -> str:
         "<th>Vessel</th>"
         "<th>Issue Count</th>"
         "<th>Report File</th>"
+        "<th>Emails</th>"
         "</tr>"
     )
     report_lines = []

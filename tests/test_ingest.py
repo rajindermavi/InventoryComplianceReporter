@@ -434,3 +434,120 @@ def test_numeric_shipid_is_coerced_to_string(
     assert row is not None
     assert row["ship_id"] == "12345"
     assert row["t"] == "text"
+
+
+def test_smrtchrt_emails_merged_with_email_column(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    """SMRTCHRT emails are appended to EMAIL, semicolons expanded, duplicates dropped."""
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["vessels_index"],
+        ["SHIPID", "SHIPNAME", "CUSTNO", "IMONO", "SHIPSTAT", "EMAIL", "NOTE1", "NOTE2", "NOTE3", "SMRTCHRT"],
+        [["S1", "Ship", "C1", "IMO", "Active", "ship@example.com", "N1", "N2", "N3", "smart1@example.com;smart2@example.com"]],
+    )
+
+    ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT ship_email FROM vessel;").fetchone()
+
+    assert row is not None
+    assert row["ship_email"] == "ship@example.com;smart1@example.com;smart2@example.com"
+
+
+def test_smrtchrt_absent_uses_email_only(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    """When SMRTCHRT column is absent ship_email contains only the EMAIL value."""
+    sources = _write_valid_sources(tmp_path)
+
+    ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT ship_email FROM vessel;").fetchone()
+
+    assert row is not None
+    assert row["ship_email"] == "ship@example.com"
+
+
+def test_smrtchrt_duplicate_emails_deduplicated(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    """Addresses already in EMAIL are not repeated when also present in SMRTCHRT."""
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["vessels_index"],
+        ["SHIPID", "SHIPNAME", "CUSTNO", "IMONO", "SHIPSTAT", "EMAIL", "NOTE1", "NOTE2", "NOTE3", "SMRTCHRT"],
+        [["S1", "Ship", "C1", "IMO", "Active", "ship@example.com", "N1", "N2", "N3", "ship@example.com;extra@example.com"]],
+    )
+
+    ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT ship_email FROM vessel;").fetchone()
+
+    assert row is not None
+    assert row["ship_email"] == "ship@example.com;extra@example.com"
+
+
+def test_smrtchrt_invalid_email_warns_and_ingests(
+    tmp_path: Path,
+    db: Database,
+    runtime_paths: paths_mod.RuntimePaths,
+) -> None:
+    """Invalid email in SMRTCHRT emits a warning but still ingests the row."""
+    sources = _write_valid_sources(tmp_path)
+    _write_workbook(
+        sources["vessels_index"],
+        ["SHIPID", "SHIPNAME", "CUSTNO", "IMONO", "SHIPSTAT", "EMAIL", "NOTE1", "NOTE2", "NOTE3", "SMRTCHRT"],
+        [["S1", "Ship", "C1", "IMO", "Active", "ship@example.com", "N1", "N2", "N3", "not-an-email"]],
+    )
+
+    summary = ingest_excel_files(
+        ic_inventory_path=sources["ic"],
+        vessels_index_path=sources["vessels_index"],
+        vessels_inventory_path=sources["vessels_inventory"],
+        db=db,
+        paths=runtime_paths,
+    )
+
+    assert summary.has_warnings is True
+
+    with db.connect() as conn:
+        conn.row_factory = sqlite3.Row
+        issues = conn.execute(
+            "SELECT * FROM validation_errors WHERE error_type='invalid_email_format' AND column_name='smrtchrt';"
+        ).fetchall()
+        row = conn.execute("SELECT ship_email FROM vessel;").fetchone()
+
+    assert issues
+    assert row is not None
+    assert row["ship_email"] == "ship@example.com;not-an-email"

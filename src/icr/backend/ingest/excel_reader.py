@@ -150,9 +150,9 @@ VESSEL_INDEX_SPEC = SheetSpec(
     required_headers=VESSEL_INDEX_REQUIRED,
     required_columns=("shipid","email"),
     matching_columns=("shipid",),
-    dupe_warning_columns = ("shipid",), 
+    dupe_warning_columns = ("shipid",),
     warning_columns=(),
-    email_columns=("email",),
+    email_columns=("email", "smrtchrt"),
     date_columns=(),
     table_name=TABLE_VESSEL,
     row_mapper=lambda row: {
@@ -161,7 +161,7 @@ VESSEL_INDEX_SPEC = SheetSpec(
         "customer_no": row.get("custno"),
         "imo_no": row.get("imono"),
         "ship_status": row.get("shipstat"),
-        "ship_email": row.get("email"),
+        "ship_email": _combine_emails(row.get("email"), row.get("smrtchrt")),
         "ams": 1 if "ams" in str(row.get("note2", "")).casefold() else 0,
     },
 )
@@ -585,6 +585,19 @@ def _is_blank(value: object) -> bool:
 
 def _is_empty_row(row: Mapping[str, object]) -> bool:
     return all(_is_blank(value) for value in row.values())
+
+
+def _combine_emails(*sources: object) -> str:
+    """Merge multiple semicolon-separated email sources, deduplicating order-preserving."""
+    seen: list[str] = []
+    for source in sources:
+        if _is_blank(source):
+            continue
+        for addr in str(source).split(";"):
+            addr = addr.strip()
+            if addr and addr not in seen:
+                seen.append(addr)
+    return ";".join(seen)
 
 
 def _is_valid_email(value: object) -> bool:

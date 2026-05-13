@@ -193,12 +193,21 @@ class WorkflowState:
             report_path = self.paths.run_dir / report_filename
             report_path.write_text(html_content, encoding="utf-8")
 
+            # Resolve email recipients for display in summary report
+            ship_email = vessel.get("ship_email") or ""
+            office_email = vessel.get("office_email") or ""
+            emails: list[str] = []
+            for raw in (ship_email, office_email):
+                if raw:
+                    emails.extend(addr.strip() for addr in raw.split(";") if addr.strip())
+
             vessels_processed.append({
                 "ship_id": vessel_id,
                 "ship_name": vessel.get("ship_name"),
                 "issue_count": len(problem_issues),
                 "report_filename": report_filename,
                 "report_path": str(report_path),
+                "emails": emails,
             })
             
             total_issues += len(problem_issues)
@@ -271,7 +280,12 @@ class WorkflowState:
                 f"[{self.paths.run_id}] Email drafting errors: "
                 f"{len(drafting_result.errors)}"
             )
-            
+            for err in drafting_result.errors:
+                logger.error(
+                    f"[{self.paths.run_id}] Draft error "
+                    f"[vessel={err.vessel_id}] [{err.severity}]: {err.message}"
+                )
+
         return summary_data
         
     def dispatch_emails(

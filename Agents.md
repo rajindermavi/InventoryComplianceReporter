@@ -3,7 +3,7 @@
 
 ## Guidelines
 Before making any changes:
-- Read Design.md in full
+- Read docs/ProductRequirements.md in full
 - Review any relevant files in docs/ related to the area being modified
 
 ## Change Rules
@@ -16,16 +16,16 @@ Before making any changes:
 
 ## Documentation
 - Update docs/ when behavior changes
-- Do not modify Design.md unless explicitly instructed
+- Do not modify ProductRequirements.md unless explicitly instructed
 - Add changes to changelog.md
 
 ## Uncertainty
-- If a change conflicts with Design.md, stop and ask
+- If a change conflicts with ProductRequirements.md, stop and ask
 
 ## Raw Input files
 - This project relies on user supplied input files
 - These files must never be moved, altered, or overwritten under any circumstances.
-- See docs/RawInputs.md for details on these files.
+- See IngestionsSchemas.md for details on these files.
 
 ## Guardrail: Runtime Paths Are Never Computed Outside paths.py
 

@@ -33,7 +33,7 @@ def test_flow_happy_path() -> None:
     assert backend.mock_calls[:3] == [
         call.confirm_inputs(),
         call.discover_ams_vessels(),
-        call.process_vessels(["SHIP123"]),
+        call.process_vessels(["SHIP123"], discrepancy_only=False, ships_with_discrepancies_only=False),
     ]
     selector.assert_called_once()
     args, kwargs = selector.call_args
@@ -91,7 +91,7 @@ def test_flow_processing_error_shows_message() -> None:
     with patch("icr.frontend.flow.selection.select_vessels", return_value=["SHIP123"]):
         flow.run_flow(backend=backend, io=io)
 
-    backend.process_vessels.assert_called_once_with(["SHIP123"])
+    backend.process_vessels.assert_called_once_with(["SHIP123"], discrepancy_only=False, ships_with_discrepancies_only=False)
     io.confirm.assert_called_once_with(messages.PROMPTS["confirm_selection"].format(count=1))
     io.display.assert_any_call(messages.ERRORS["processing"]["title"])
 
